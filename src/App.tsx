@@ -76,6 +76,18 @@ export default function App() {
 
   useEffect(() => { getStats().then(setStats); }, []);
 
+  const reset = () => {
+    setPlaying(false);
+    setSimTime(0);
+    anim.reset();
+    setUserStance(null);
+    setShowHint(false);
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+    }
+  };
+
   const onStancePick = async (s: Stance) => {
     setUserStance(s);
     const correct = s === dec.recommended;
@@ -130,6 +142,7 @@ export default function App() {
         <div>
           <button onClick={() => setPlaying(p => !p)}>{playing ? 'Pause' : 'Play'}</button>
           <button onClick={() => setSimTime(t => t + 0.05)}>Step</button>
+          <button onClick={reset}>Reset</button>
           <select value={speed} onChange={e => setSpeed(+e.target.value)}>
             <option value={0.25}>0.25x</option>
             <option value={1}>1x</option>
