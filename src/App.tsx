@@ -10,6 +10,7 @@ import { AnimationEngine } from './engines/AnimationEngine';
 import { Court } from './components/Court';
 import { Ball } from './components/Ball';
 import { Player } from './components/Player';
+import { VideoCoach } from './components/VideoCoach';
 import { saveAttempt, getStats } from './lib/storage';
 
 const STANCE_KEYWORDS: Record<string, Record<Stance, string[]>> = {
@@ -27,7 +28,8 @@ const LANGS = Object.keys(STANCE_KEYWORDS);
 
 export default function App() {
   const [scIdx, setScIdx] = useState(0);
-  const sc = scenarios[scIdx];
+  const [customScenario, setCustomScenario] = useState<any>(null);
+  const sc = customScenario || scenarios[scIdx];
   const ball = useRef(new BallEngine({
     bouncePoint: sc.bounce, speed: sc.speed, spin: sc.spin as any, bounceHeight: sc.height
   })).current;
@@ -40,6 +42,7 @@ export default function App() {
   const [speed, setSpeed] = useState(1);
   const [cam, setCam] = useState<'top'|'side'|'back'|'free'>('free');
   const [mode, setMode] = useState<'play'|'decide'|'compare'>('play');
+  const [tab, setTab] = useState<'3d'|'video'>('3d');
   const [userStance, setUserStance] = useState<Stance | null>(null);
   const [showHint, setShowHint] = useState(false);
   const [stats, setStats] = useState({ total: 0, correct: 0 });
@@ -59,7 +62,7 @@ export default function App() {
     anim.reset();
     setUserStance(null);
     setShowHint(false);
-  }, [scIdx]);
+  }, [scIdx, customScenario]);
 
   useEffect(() => {
     let id: number;
@@ -125,6 +128,11 @@ export default function App() {
     setListening(false);
   };
 
+  const onReplay = (scenario: any) => {
+    setCustomScenario(scenario);
+    setTab('3d');
+  };
+
   return (
     <>
       <Canvas shadows>
@@ -140,59 +148,73 @@ export default function App() {
       </Canvas>
       <div className="controls">
         <div>
-          <button onClick={() => setPlaying(p => !p)}>{playing ? 'Pause' : 'Play'}</button>
-          <button onClick={() => setSimTime(t => t + 0.05)}>Step</button>
-          <button onClick={reset}>Reset</button>
-          <select value={speed} onChange={e => setSpeed(+e.target.value)}>
-            <option value={0.25}>0.25x</option>
-            <option value={1}>1x</option>
-          </select>
+          <button onClick={() => setTab('3d')}>3D Coach</button>
+          <button onClick={() => setTab('video')}>AI Video</button>
         </div>
-        <div>
-          Cam: <button onClick={() => setCam('top')}>Top</button>
-          <button onClick={() => setCam('side')}>Side</button>
-          <button onClick={() => setCam('back')}>Back</button>
-          <button onClick={() => setCam('free')}>Free</button>
-        </div>
-        <div className="panel">
-          Scenario: <select value={scIdx} onChange={e => setScIdx(+e.target.value)}>
-            {scenarios.map((s, i) => <option key={s.id} value={i}>{s.name}</option>)}
-          </select>
-        </div>
-        <div className="panel">
-          Mode: <select value={mode} onChange={e => setMode(e.target.value as any)}>
-            <option value="play">Play</option>
-            <option value="decide">Decide first</option>
-            <option value="compare">Compare</option>
-          </select>
-        </div>
-        <div className="panel">
-          Lang: <select value={lang} onChange={e => setLang(e.target.value)}>
-            {LANGS.map(l => <option key={l} value={l}>{l}</option>)}
-          </select>
-          {(mode === 'decide' || mode === 'compare') && (
-            <button onClick={listening ? stopListening : startListening}>
-              {listening ? 'Stop mic' : 'Voice stance'}
-            </button>
-          )}
-        </div>
-        {(mode === 'decide' || mode === 'compare') && (
-          <div className="panel">
-            Choose stance:
-            {(['open','semi-open','neutral','closed'] as Stance[]).map(st => (
-              <button key={st} className={`stance-btn ${userStance === st ? (userStance === dec.recommended ? 'correct' : 'wrong') : ''}`} onClick={() => onStancePick(st)}>{st}</button>
-            ))}
-          </div>
+        {tab === 'video' ? (
+          <VideoCoach onReplay={onReplay} />
+        ) : (
+          <>
+            <div>
+              <button onClick={() => setPlaying(p => !p)}>{playing ? 'Pause' : 'Play'}</button>
+              <button onClick={() => setSimTime(t => t + 0.05)}>Step</button>
+              <button onClick={reset}>Reset</button>
+              <select value={speed} onChange={e => setSpeed(+e.target.value)}>
+                <option value={0.25}>0.25x</option>
+                <option value={1}>1x</option>
+              </select>
+            </div>
+            <div>
+              Cam: <button onClick={() => setCam('top')}>Top</button>
+              <button onClick={() => setCam('side')}>Side</button>
+              <button onClick={() => setCam('back')}>Back</button>
+              <button onClick={() => setCam('free')}>Free</button>
+            </div>
+            <div className="panel">
+              Scenario: {customScenario ? <b>{customScenario.name} (video)</b> : (
+                <select value={scIdx} onChange={e => { setCustomScenario(null); setScIdx(+e.target.value); }}>
+                  {scenarios.map((s, i) => <option key={s.id} value={i}>{s.name}</option>)}
+                </select>
+              )}
+              {customScenario && <button onClick={() => setCustomScenario(null)}>Back to library</button>}
+            </div>
+            <div className="panel">
+              Mode: <select value={mode} onChange={e => setMode(e.target.value as any)}>
+                <option value="play">Play</option>
+                <option value="decide">Decide first</option>
+                <option value="compare">Compare</option>
+              </select>
+            </div>
+            <div className="panel">
+              Lang: <select value={lang} onChange={e => setLang(e.target.value)}>
+                {LANGS.map(l => <option key={l} value={l}>{l}</option>)}
+              </select>
+              {(mode === 'decide' || mode === 'compare') && (
+                <button onClick={listening ? stopListening : startListening}>
+                  {listening ? 'Stop mic' : 'Voice stance'}
+                </button>
+              )}
+            </div>
+            {(mode === 'decide' || mode === 'compare') && (
+              <div className="panel">
+                Choose stance:
+                {(['open','semi-open','neutral','closed'] as Stance[]).map(st => (
+                  <button key={st} className={`stance-btn ${userStance === st ? (userStance === dec.recommended ? 'correct' : 'wrong') : ''}`} onClick={() => onStancePick(st)}>{st}</button>
+                ))}
+              </div>
+            )}
+            {(showHint || mode === 'play' || mode === 'compare') && (
+              <div className="panel">
+                <b>{reachInfo.ok ? '✓' : '✗'} {reachInfo.reason}</b><br/>
+                Recommended: <b>{dec.recommended}</b><br/>
+                Alt: {dec.alternatives.join(', ')}<br/>
+                {dec.explanation}
+                {customScenario?.uncertainty && <div>Uncertainty: {(customScenario.uncertainty*100).toFixed(0)}%</div>}
+              </div>
+            )}
+            <div className="panel">Progress: {stats.correct}/{stats.total} correct</div>
+          </>
         )}
-        {(showHint || mode === 'play' || mode === 'compare') && (
-          <div className="panel">
-            <b>{reachInfo.ok ? '✓' : '✗'} {reachInfo.reason}</b><br/>
-            Recommended: <b>{dec.recommended}</b><br/>
-            Alt: {dec.alternatives.join(', ')}<br/>
-            {dec.explanation}
-          </div>
-        )}
-        <div className="panel">Progress: {stats.correct}/{stats.total} correct</div>
       </div>
     </>
   );
