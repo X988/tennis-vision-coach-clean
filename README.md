@@ -1,59 +1,40 @@
-# Tennis Vision Coach — Stage 3
+# Tennis Vision Coach — Stage 3 + AI Video Pilot (V0–V1)
 
-Modular engines + coach editor, roles, cloud sync, versioning.
+Modular engines + coach editor, roles, cloud sync, versioning + video analysis pilot.
 
 ## Architecture
 - Engines: Ball / Reachability / Decision / Animation / Feedback (shared simulationTime)
-- Frontend: React Three Fiber + IndexedDB + API client (`src/lib/api.ts`)
-- Backend: REST/JSON (`backend/server.js`), file persistence as PostgreSQL analog
-- Schema: `backend/schema.sql` (ready for real PostgreSQL)
+- Video: video → events → scenario → existing 3D engine (`VideoProcessor` + `VideoCoach`)
+- Frontend: React Three Fiber + IndexedDB + API client
+- Backend: REST/JSON (`backend/server.js`)
 
 ## Launch
 ```bash
-# Frontend
 npm install
 npm run dev
-
-# Backend (separate terminal)
-cd backend
-npm install
-npm start
+# optional backend: cd backend && npm install && npm start
 ```
-API: http://localhost:3001
 
-## Roles
-- student: play, progress, profile
-- coach: create/edit drafts, publish after review, view versions
-- admin: full access
+## AI Video Coach Pilot
+Tab **AI Video**:
+- Import 10–60s MP4/MOV
+- Select player side (near/far)
+- Quality gate: suitable / partial / insufficient (with reason)
+- Events: opponent hit, bounce, estimated contact (with confidence)
+- Error categories (only if suitable): position, preparation/turn, distance/stance — each with evidence, hypothesis, alternative
+- Modes: Video / +Skeleton / My 3D / Compare
+- **Replay moment** → loads scenario into 3D coach (marks uncertainty)
 
-Set role via `PUT /api/me` or create user with role.
+### Limitations (V0–V1)
+- Pose landmarks currently simulated; full MediaPipe Pose Landmarker (`@mediapipe/tasks-vision`) integration is the next step (frame-by-frame processing + court calibration via 4 points).
+- Event detection is heuristic; not production-grade tracking.
+- No automatic court calibration UI yet (manual markers planned).
+- Low-confidence / insufficient quality → no error conclusions generated.
+- Single-player focus; multi-player occlusion not handled.
+- Browser performance depends on device; process short clips only.
 
-## Coach Editor
-Component `src/components/Editor.tsx` — create scenarios without code (bounce, speed, spin, height, shot, handed, recommended stance, hint). Saves as draft. Publish via API.
-
-## API (key endpoints)
-- `POST /api/users` — create (returns id; send as `x-user-id` header)
-- `GET/PUT /api/me` — profile (handed, backhand, height, level, settings)
-- `GET /api/scenarios` — published + own
-- `POST /api/scenarios` — create draft (coach+)
-- `PUT /api/scenarios/:id` — update + auto-version
-- `POST /api/scenarios/:id/publish`
-- `GET /api/scenarios/:id/versions`
-- `POST/GET /api/progress`
-- `PUT/GET /api/state` — save/restore working state (scenario, camera, stage)
-
-## Offline + sync
-Local IndexedDB remains source of truth. On network: call `api.saveProgress` / `api.saveState` / `api.scenarios`. Implement queue in `storage.ts` if needed.
-
-## Versioning
-Every update increments version and stores snapshot + change_log in `versions`.
-
-## Personalization
-Store in user profile: leading hand, backhand type, height/category, level, display settings. Load on start and pass to engines/UI.
+## Roles, Editor, API, Sync
+See previous sections — unchanged. Editor and API still available for coaches.
 
 ## Adding scenarios
-1. Use Editor UI (coach) or
-2. POST to `/api/scenarios` or
-3. Still support local `scenarios.json` as seed.
-
-Replace placeholder player with glTF when ready. For production PostgreSQL: apply `schema.sql` and swap file I/O in `server.js` for `pg` client.
+Library JSON, Coach Editor, or Video → Replay.
