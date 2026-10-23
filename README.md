@@ -1,40 +1,38 @@
-# Tennis Vision Coach — Stage 3 + AI Video Pilot (V0–V1)
+# Tennis Vision Coach — Stage 5 (Full Matches)
 
-Modular engines + coach editor, roles, cloud sync, versioning + video analysis pilot.
+Modular 3D engines + AI Video (short) + Full Match processing.
 
 ## Architecture
-- Engines: Ball / Reachability / Decision / Animation / Feedback (shared simulationTime)
-- Video: video → events → scenario → existing 3D engine (`VideoProcessor` + `VideoCoach`)
-- Frontend: React Three Fiber + IndexedDB + API client
-- Backend: REST/JSON (`backend/server.js`)
+- 3D Scenario Engine + Event & Error Engine (shared simulationTime)
+- Video → events → scenario → 3D (`VideoProcessor`, `MatchProcessor`)
+- Frontend: React Three Fiber + IndexedDB
+- Backend optional for sync/roles
 
 ## Launch
 ```bash
 npm install
 npm run dev
-# optional backend: cd backend && npm install && npm start
 ```
+Tabs: **3D Coach** | **AI Video** | **Full Match**
 
-## AI Video Coach Pilot
-Tab **AI Video**:
-- Import 10–60s MP4/MOV
-- Select player side (near/far)
-- Quality gate: suitable / partial / insufficient (with reason)
-- Events: opponent hit, bounce, estimated contact (with confidence)
-- Error categories (only if suitable): position, preparation/turn, distance/stance — each with evidence, hypothesis, alternative
-- Modes: Video / +Skeleton / My 3D / Compare
-- **Replay moment** → loads scenario into 3D coach (marks uncertainty)
+## Full Match (Stage 5)
+- Async upload with progress, cancel, status recovery
+- Auto rally/shot segmentation (manual correction ready)
+- Recurring error patterns (position, preparation, distance/stance…)
+- Personal training plan from patterns
+- Timeline + filters, Replay any rally into 3D
+- Model version + confidence + limitations stored with every result
 
-### Limitations (V0–V1)
-- Pose landmarks currently simulated; full MediaPipe Pose Landmarker (`@mediapipe/tasks-vision`) integration is the next step (frame-by-frame processing + court calibration via 4 points).
-- Event detection is heuristic; not production-grade tracking.
-- No automatic court calibration UI yet (manual markers planned).
-- Low-confidence / insufficient quality → no error conclusions generated.
-- Single-player focus; multi-player occlusion not handled.
-- Browser performance depends on device; process short clips only.
+### Accuracy Limitations
+- Pilot heuristics (not production tracking)
+- Requires stable camera, good lighting, single primary player
+- Confidence < ~0.65 marked; insufficient quality suppresses strong claims
+- Full MediaPipe + court calibration still the next integration step
+- Comparison of two matches only valid under similar filming conditions
+- Long matches processed in simulated async steps; real backend queue recommended for production
 
-## Roles, Editor, API, Sync
-See previous sections — unchanged. Editor and API still available for coaches.
+## Short Video Pilot
+Unchanged — see previous notes.
 
-## Adding scenarios
-Library JSON, Coach Editor, or Video → Replay.
+## Coach mode / versioning
+Hypotheses can be confirmed/rejected; recommendations versioned via existing backend schema when connected.
