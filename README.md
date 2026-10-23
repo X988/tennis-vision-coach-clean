@@ -1,51 +1,59 @@
-# Tennis Vision Coach MVP
+# Tennis Vision Coach — Stage 3
 
-Modular TypeScript + React Three Fiber coach for right/left-handed forehand and two-handed backhand.
+Modular engines + coach editor, roles, cloud sync, versioning.
 
-## Modules (all driven by shared simulationTime)
-- `BallEngine` — trajectory, bounce, spin (flat/topspin/slice), height, contact time
-- `ReachabilityEngine` — can player reach, suggested position
-- `DecisionEngine` — recommended stance (open / semi-open / neutral / closed) + alternatives + explanation
-- `AnimationEngine` — contact-synced swing
-- `storage.ts` — IndexedDB progress
-- `scenarios.json` — 12 library scenarios
+## Architecture
+- Engines: Ball / Reachability / Decision / Animation / Feedback (shared simulationTime)
+- Frontend: React Three Fiber + IndexedDB + API client (`src/lib/api.ts`)
+- Backend: REST/JSON (`backend/server.js`), file persistence as PostgreSQL analog
+- Schema: `backend/schema.sql` (ready for real PostgreSQL)
 
 ## Launch
 ```bash
-git clone https://github.com/X988/tennis-vision-coach-clean.git
-cd tennis-vision-coach-clean
+# Frontend
 npm install
 npm run dev
+
+# Backend (separate terminal)
+cd backend
+npm install
+npm start
 ```
+API: http://localhost:3001
 
-## Modes
-- Play: free view + recommended stance
-- Decide first: pick stance before seeing suggestion; records correct/incorrect
-- Compare: see your choice vs recommended
+## Roles
+- student: play, progress, profile
+- coach: create/edit drafts, publish after review, view versions
+- admin: full access
 
-## Adding a new scenario
-1. Open `src/data/scenarios.json`
-2. Append object:
-```json
-{
-  "id": "my-scenario",
-  "name": "My scenario",
-  "bounce": { "x": 1.5, "z": -9 },
-  "speed": 15,
-  "spin": "topspin",
-  "height": 0.7,
-  "shot": "forehand",
-  "handed": "right",
-  "intent": "attacking"
-}
-```
-3. Valid values:
-   - spin: "flat" | "topspin" | "slice"
-   - shot: "forehand" | "backhand"
-   - handed: "right" | "left"
-   - intent: free string
-4. Reload app — new scenario appears in dropdown. Engines recalculate trajectory, contact, reachability and decision automatically.
+Set role via `PUT /api/me` or create user with role.
 
-Constructor sliders can be added in App by calling `ball.updateParams(...)` and resetting simTime.
+## Coach Editor
+Component `src/components/Editor.tsx` — create scenarios without code (bounce, speed, spin, height, shot, handed, recommended stance, hint). Saves as draft. Publish via API.
 
-Player uses placeholder geometry with stance-specific foot positions. Replace with glTF when ready.
+## API (key endpoints)
+- `POST /api/users` — create (returns id; send as `x-user-id` header)
+- `GET/PUT /api/me` — profile (handed, backhand, height, level, settings)
+- `GET /api/scenarios` — published + own
+- `POST /api/scenarios` — create draft (coach+)
+- `PUT /api/scenarios/:id` — update + auto-version
+- `POST /api/scenarios/:id/publish`
+- `GET /api/scenarios/:id/versions`
+- `POST/GET /api/progress`
+- `PUT/GET /api/state` — save/restore working state (scenario, camera, stage)
+
+## Offline + sync
+Local IndexedDB remains source of truth. On network: call `api.saveProgress` / `api.saveState` / `api.scenarios`. Implement queue in `storage.ts` if needed.
+
+## Versioning
+Every update increments version and stores snapshot + change_log in `versions`.
+
+## Personalization
+Store in user profile: leading hand, backhand type, height/category, level, display settings. Load on start and pass to engines/UI.
+
+## Adding scenarios
+1. Use Editor UI (coach) or
+2. POST to `/api/scenarios` or
+3. Still support local `scenarios.json` as seed.
+
+Replace placeholder player with glTF when ready. For production PostgreSQL: apply `schema.sql` and swap file I/O in `server.js` for `pg` client.
