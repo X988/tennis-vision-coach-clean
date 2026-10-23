@@ -1,0 +1,7 @@
+body { margin: 0; overflow: hidden; background: #0a0a0a; font-family: system-ui; }
+.controls { position: absolute; top: 10px; left: 10px; color: #eee; background: rgba(0,0,0,0.65); padding: 12px; border-radius: 8px; max-width: 340px; font-size: 13px; }
+.controls button, .controls select, .controls input { margin: 3px; }
+.panel { margin-top: 8px; padding-top: 8px; border-top: 1px solid #444; }
+.stance-btn { padding: 4px 8px; margin: 2px; }
+.correct { background: #2a7; color: #fff; }
+.wrong { background: #a33; color: #fff; }
