@@ -11,6 +11,7 @@ import { Court } from './components/Court';
 import { Ball } from './components/Ball';
 import { Player } from './components/Player';
 import { VideoCoach } from './components/VideoCoach';
+import { MatchCoach } from './components/MatchCoach';
 import { saveAttempt, getStats } from './lib/storage';
 
 const STANCE_KEYWORDS: Record<string, Record<Stance, string[]>> = {
@@ -42,7 +43,7 @@ export default function App() {
   const [speed, setSpeed] = useState(1);
   const [cam, setCam] = useState<'top'|'side'|'back'|'free'>('free');
   const [mode, setMode] = useState<'play'|'decide'|'compare'>('play');
-  const [tab, setTab] = useState<'3d'|'video'>('3d');
+  const [tab, setTab] = useState<'3d'|'video'|'match'>('3d');
   const [userStance, setUserStance] = useState<Stance | null>(null);
   const [showHint, setShowHint] = useState(false);
   const [stats, setStats] = useState({ total: 0, correct: 0 });
@@ -66,7 +67,7 @@ export default function App() {
 
   useEffect(() => {
     let id: number;
-    const loop = (t: number) => {
+    const loop = () => {
       if (playing) {
         setSimTime(s => s + 0.016 * speed);
         anim.update(0.016 * speed);
@@ -150,10 +151,11 @@ export default function App() {
         <div>
           <button onClick={() => setTab('3d')}>3D Coach</button>
           <button onClick={() => setTab('video')}>AI Video</button>
+          <button onClick={() => setTab('match')}>Full Match</button>
         </div>
-        {tab === 'video' ? (
-          <VideoCoach onReplay={onReplay} />
-        ) : (
+        {tab === 'video' && <VideoCoach onReplay={onReplay} />}
+        {tab === 'match' && <MatchCoach onReplay={onReplay} />}
+        {tab === '3d' && (
           <>
             <div>
               <button onClick={() => setPlaying(p => !p)}>{playing ? 'Pause' : 'Play'}</button>
@@ -171,12 +173,12 @@ export default function App() {
               <button onClick={() => setCam('free')}>Free</button>
             </div>
             <div className="panel">
-              Scenario: {customScenario ? <b>{customScenario.name} (video)</b> : (
+              Scenario: {customScenario ? <b>{customScenario.name}</b> : (
                 <select value={scIdx} onChange={e => { setCustomScenario(null); setScIdx(+e.target.value); }}>
                   {scenarios.map((s, i) => <option key={s.id} value={i}>{s.name}</option>)}
                 </select>
               )}
-              {customScenario && <button onClick={() => setCustomScenario(null)}>Back to library</button>}
+              {customScenario && <button onClick={() => setCustomScenario(null)}>Library</button>}
             </div>
             <div className="panel">
               Mode: <select value={mode} onChange={e => setMode(e.target.value as any)}>
