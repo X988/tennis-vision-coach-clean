@@ -12,6 +12,19 @@ import { Ball } from './components/Ball';
 import { Player } from './components/Player';
 import { saveAttempt, getStats } from './lib/storage';
 
+const STANCE_KEYWORDS: Record<string, Record<Stance, string[]>> = {
+  'en-US': { open: ['open'], 'semi-open': ['semi open', 'semi-open', 'semi'], neutral: ['neutral'], closed: ['closed'] },
+  'ru-RU': { open: ['открытая', 'открытый'], 'semi-open': ['полуоткрытая', 'полуоткрытый', 'полу'], neutral: ['нейтральная', 'нейтральный'], closed: ['закрытая', 'закрытый'] },
+  'uk-UA': { open: ['відкрита', 'відкритий'], 'semi-open': ['напіввідкрита', 'напіввідкритий'], neutral: ['нейтральна'], closed: ['закрита'] },
+  'es-ES': { open: ['abierta'], 'semi-open': ['semi abierta', 'semiabierta'], neutral: ['neutral'], closed: ['cerrada'] },
+  'fr-FR': { open: ['ouverte'], 'semi-open': ['semi ouverte', 'semi-ouverte'], neutral: ['neutre'], closed: ['fermée'] },
+  'de-DE': { open: ['offen'], 'semi-open': ['halb offen', 'halboffen'], neutral: ['neutral'], closed: ['geschlossen'] },
+  'zh-CN': { open: ['开放', '开式'], 'semi-open': ['半开放', '半开'], neutral: ['中性', '中立'], closed: ['关闭', '闭式'] },
+  'ja-JP': { open: ['オープン'], 'semi-open': ['セミオープン'], neutral: ['ニュートラル'], closed: ['クローズド'] },
+};
+
+const LANGS = Object.keys(STANCE_KEYWORDS);
+
 export default function App() {
   const [scIdx, setScIdx] = useState(0);
   const sc = scenarios[scIdx];
@@ -30,6 +43,9 @@ export default function App() {
   const [userStance, setUserStance] = useState<Stance | null>(null);
   const [showHint, setShowHint] = useState(false);
   const [stats, setStats] = useState({ total: 0, correct: 0 });
+  const [lang, setLang] = useState('en-US');
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
   const playerStart = new THREE.Vector3(0, 0, -10.8);
   const reachInfo = reach.canReach(sc.bounce, ball.getContactTime(), playerStart);
@@ -66,6 +82,35 @@ export default function App() {
     await saveAttempt(sc.id, s, correct);
     setStats(await getStats());
     setShowHint(true);
+  };
+
+  const startListening = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) { alert('Speech recognition not supported'); return; }
+    const rec = new SpeechRecognition();
+    rec.lang = lang;
+    rec.continuous = false;
+    rec.interimResults = false;
+    rec.onresult = (e: any) => {
+      const text = e.results[0][0].transcript.toLowerCase();
+      const map = STANCE_KEYWORDS[lang] || STANCE_KEYWORDS['en-US'];
+      for (const [stance, words] of Object.entries(map)) {
+        if (words.some(w => text.includes(w))) {
+          onStancePick(stance as Stance);
+          break;
+        }
+      }
+    };
+    rec.onend = () => setListening(false);
+    rec.onerror = () => setListening(false);
+    recognitionRef.current = rec;
+    rec.start();
+    setListening(true);
+  };
+
+  const stopListening = () => {
+    recognitionRef.current?.stop();
+    setListening(false);
   };
 
   return (
@@ -107,6 +152,16 @@ export default function App() {
             <option value="decide">Decide first</option>
             <option value="compare">Compare</option>
           </select>
+        </div>
+        <div className="panel">
+          Lang: <select value={lang} onChange={e => setLang(e.target.value)}>
+            {LANGS.map(l => <option key={l} value={l}>{l}</option>)}
+          </select>
+          {(mode === 'decide' || mode === 'compare') && (
+            <button onClick={listening ? stopListening : startListening}>
+              {listening ? 'Stop mic' : 'Voice stance'}
+            </button>
+          )}
         </div>
         {(mode === 'decide' || mode === 'compare') && (
           <div className="panel">
