@@ -14,20 +14,20 @@ export class DecisionEngine {
     const fast = speed > 18;
 
     let recommended: Stance = 'neutral';
-    let explanation = 'Neutral base position.';
+    let explanation = 'Нейтральная базовая позиция.';
 
     if (lateral > 2.5) {
       recommended = 'open';
-      explanation = 'Wide ball → open stance for better reach and recovery.';
+      explanation = 'Широкий мяч → открытая стойка для лучшего достижения и возврата.';
     } else if (lateral > 1.2) {
       recommended = 'semi-open';
-      explanation = 'Semi-wide → semi-open for balance of power and recovery.';
+      explanation = 'Полуширокий → полуоткрытая для баланса силы и возврата.';
     } else if (deep || fast) {
       recommended = 'closed';
-      explanation = 'Deep/fast ball → closed stance for stability and control.';
+      explanation = 'Глубокий/быстрый мяч → закрытая стойка для стабильности и контроля.';
     } else if (high && spin === 'topspin') {
       recommended = 'semi-open';
-      explanation = 'High topspin → semi-open to handle the bounce.';
+      explanation = 'Высокий топспин → полуоткрытая для работы с отскоком.';
     }
 
     const all: Stance[] = ['open', 'semi-open', 'neutral', 'closed'];
