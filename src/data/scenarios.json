@@ -1,14 +1,14 @@
 [
-  {"id":"short-center","name":"Short center","bounce":{"x":0,"z":-6},"speed":12,"spin":"flat","height":0.4,"shot":"forehand","handed":"right","intent":"attacking"},
-  {"id":"medium-center","name":"Medium center","bounce":{"x":0,"z":-9},"speed":16,"spin":"topspin","height":0.8,"shot":"forehand","handed":"right","intent":"neutral"},
-  {"id":"deep-center","name":"Deep center","bounce":{"x":0,"z":-11.5},"speed":18,"spin":"flat","height":0.6,"shot":"forehand","handed":"right","intent":"defensive"},
-  {"id":"wide-right","name":"Wide right","bounce":{"x":3.2,"z":-9},"speed":15,"spin":"topspin","height":0.7,"shot":"forehand","handed":"right","intent":"attacking"},
-  {"id":"wide-left","name":"Wide left","bounce":{"x":-3.2,"z":-9},"speed":15,"spin":"slice","height":0.5,"shot":"backhand","handed":"right","intent":"neutral"},
-  {"id":"body-right","name":"Into body right","bounce":{"x":1.2,"z":-9.5},"speed":17,"spin":"flat","height":0.9,"shot":"forehand","handed":"right","intent":"defensive"},
-  {"id":"body-left","name":"Into body left","bounce":{"x":-1.2,"z":-9.5},"speed":17,"spin":"topspin","height":0.9,"shot":"backhand","handed":"right","intent":"defensive"},
-  {"id":"fast-high","name":"Fast high bounce","bounce":{"x":1.5,"z":-8},"speed":22,"spin":"topspin","height":1.4,"shot":"forehand","handed":"right","intent":"attacking"},
-  {"id":"slow-low","name":"Slow low bounce","bounce":{"x":-1,"z":-7},"speed":10,"spin":"slice","height":0.3,"shot":"backhand","handed":"right","intent":"neutral"},
-  {"id":"deep-wide-right","name":"Deep wide right","bounce":{"x":3.5,"z":-11.2},"speed":19,"spin":"flat","height":0.5,"shot":"forehand","handed":"right","intent":"defensive"},
-  {"id":"lefty-forehand","name":"Lefty forehand wide","bounce":{"x":-3,"z":-8.5},"speed":14,"spin":"topspin","height":0.6,"shot":"forehand","handed":"left","intent":"attacking"},
-  {"id":"lefty-backhand","name":"Lefty two-hand BH","bounce":{"x":2.8,"z":-10},"speed":16,"spin":"slice","height":0.4,"shot":"backhand","handed":"left","intent":"neutral"}
+  {"id":"short-center","name":"Короткий по центру","bounce":{"x":0,"z":-6},"speed":12,"spin":"flat","height":0.4,"shot":"forehand","handed":"right","intent":"attacking"},
+  {"id":"medium-center","name":"Средний по центру","bounce":{"x":0,"z":-9},"speed":16,"spin":"topspin","height":0.8,"shot":"forehand","handed":"right","intent":"neutral"},
+  {"id":"deep-center","name":"Глубокий по центру","bounce":{"x":0,"z":-11.5},"speed":18,"spin":"flat","height":0.6,"shot":"forehand","handed":"right","intent":"defensive"},
+  {"id":"wide-right","name":"Широкий вправо","bounce":{"x":3.2,"z":-9},"speed":15,"spin":"topspin","height":0.7,"shot":"forehand","handed":"right","intent":"attacking"},
+  {"id":"wide-left","name":"Широкий влево","bounce":{"x":-3.2,"z":-9},"speed":15,"spin":"slice","height":0.5,"shot":"backhand","handed":"right","intent":"neutral"},
+  {"id":"body-right","name":"В корпус справа","bounce":{"x":1.2,"z":-9.5},"speed":17,"spin":"flat","height":0.9,"shot":"forehand","handed":"right","intent":"defensive"},
+  {"id":"body-left","name":"В корпус слева","bounce":{"x":-1.2,"z":-9.5},"speed":17,"spin":"topspin","height":0.9,"shot":"backhand","handed":"right","intent":"defensive"},
+  {"id":"fast-high","name":"Быстрый высокий отскок","bounce":{"x":1.5,"z":-8},"speed":22,"spin":"topspin","height":1.4,"shot":"forehand","handed":"right","intent":"attacking"},
+  {"id":"slow-low","name":"Медленный низкий отскок","bounce":{"x":-1,"z":-7},"speed":10,"spin":"slice","height":0.3,"shot":"backhand","handed":"right","intent":"neutral"},
+  {"id":"deep-wide-right","name":"Глубокий широкий вправо","bounce":{"x":3.5,"z":-11.2},"speed":19,"spin":"flat","height":0.5,"shot":"forehand","handed":"right","intent":"defensive"},
+  {"id":"lefty-forehand","name":"Левша форхенд широкий","bounce":{"x":-3,"z":-8.5},"speed":14,"spin":"topspin","height":0.6,"shot":"forehand","handed":"left","intent":"attacking"},
+  {"id":"lefty-backhand","name":"Левша двуручный бэкхенд","bounce":{"x":2.8,"z":-10},"speed":16,"spin":"slice","height":0.4,"shot":"backhand","handed":"left","intent":"neutral"}
 ]
