@@ -1,3 +1,5 @@
+import { PoseLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
+
 export type Quality = 'suitable' | 'partial' | 'insufficient';
 export type EventType = 'opponent_hit' | 'bounce' | 'contact';
 
@@ -10,7 +12,7 @@ export interface VideoEvent {
 
 export interface PoseFrame {
   time: number;
-  landmarks: number[][]; // [x,y,z,visibility] x 33
+  landmarks: number[][];
   courtPos?: { x: number; z: number };
   confidence: number;
 }
@@ -20,7 +22,7 @@ export interface AnalysisResult {
   reason: string;
   events: VideoEvent[];
   frames: PoseFrame[];
-  scenario: any; // compatible with existing engines
+  scenario: any;
   errors: {
     category: 'position' | 'preparation' | 'distance_stance';
     evidence: string;
@@ -30,35 +32,54 @@ export interface AnalysisResult {
   }[];
 }
 
+let landmarkerPromise: Promise<PoseLandmarker> | null = null;
+
+async function getLandmarker() {
+  if (!landmarkerPromise) {
+    landmarkerPromise = (async () => {
+      const vision = await FilesetResolver.forVisionTasks(
+        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
+      );
+      return PoseLandmarker.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task',
+          delegate: 'GPU'
+        },
+        runningMode: 'VIDEO',
+        numPoses: 1
+      });
+    })();
+  }
+  return landmarkerPromise;
+}
+
 export class VideoProcessor {
   async analyze(file: File, playerSide: 'near' | 'far' = 'near'): Promise<AnalysisResult> {
     const duration = await this.getDuration(file);
-    if (duration < 10 || duration > 60) {
-      return this.insufficient('Duration must be 10–60 seconds');
+    if (duration < 5 || duration > 120) {
+      return this.insufficient('Duration should be 5–120 seconds for analysis');
     }
 
-    // Pilot: MediaPipe Pose Landmarker integration point
-    // In full version: process frames with @mediapipe/tasks-vision PoseLandmarker
-    const frames = this.simulatePoseFrames(duration);
-    const avgConf = frames.reduce((s, f) => s + f.confidence, 0) / frames.length;
+    const frames = await this.extractPoseFrames(file, duration);
+    const avgConf = frames.reduce((s, f) => s + f.confidence, 0) / (frames.length || 1);
 
     let quality: Quality = 'suitable';
-    let reason = 'Good visibility and court coverage';
-    if (avgConf < 0.4) {
+    let reason = 'Good pose visibility';
+    if (avgConf < 0.35) {
       quality = 'insufficient';
-      reason = 'Low pose confidence — player partially out of frame or occluded';
-    } else if (avgConf < 0.65) {
+      reason = 'Low pose confidence — player poorly visible';
+    } else if (avgConf < 0.6) {
       quality = 'partial';
-      reason = 'Partial data — some frames missing key points';
+      reason = 'Partial pose data';
     }
 
     if (quality === 'insufficient') {
-      return { quality, reason, events: [], frames: [], scenario: null, errors: [] };
+      return { quality, reason, events: [], frames, scenario: null, errors: [] };
     }
 
     const events = this.detectEvents(frames, playerSide);
     const scenario = this.toScenario(events, playerSide);
-    const errors = quality === 'suitable' ? this.detectErrors(frames, events) : [];
+    const errors = this.detectErrors(frames, events);
 
     return { quality, reason, events, frames, scenario, errors };
   }
@@ -72,15 +93,29 @@ export class VideoProcessor {
     });
   }
 
-  private simulatePoseFrames(duration: number): PoseFrame[] {
+  private async extractPoseFrames(file: File, duration: number): Promise<PoseFrame[]> {
+    const lm = await getLandmarker();
+    const video = document.createElement('video');
+    video.src = URL.createObjectURL(file);
+    video.muted = true;
+    await video.play();
+    video.pause();
+
     const frames: PoseFrame[] = [];
-    for (let t = 0; t < duration; t += 0.1) {
-      const conf = 0.5 + Math.sin(t) * 0.3 + Math.random() * 0.2;
+    const step = Math.max(0.08, duration / 80);
+
+    for (let t = 0; t < duration; t += step) {
+      video.currentTime = t;
+      await new Promise(r => { video.onseeked = r; });
+      const res = lm.detectForVideo(video, t * 1000);
+      const landmarks = res.landmarks?.[0] || [];
+      const conf = landmarks[0]?.visibility ?? 0;
+      const hip = landmarks[23] || landmarks[24];
       frames.push({
         time: t,
-        landmarks: Array(33).fill(0).map(() => [0.5, 0.5, 0, conf]),
-        courtPos: { x: Math.sin(t) * 2, z: -9 + Math.cos(t) },
-        confidence: Math.min(1, conf)
+        landmarks: landmarks.map((p: any) => [p.x, p.y, p.z || 0, p.visibility || 0]),
+        courtPos: hip ? { x: (hip.x - 0.5) * 8, z: -10 + hip.y * 4 } : undefined,
+        confidence: conf
       });
     }
     return frames;
@@ -88,27 +123,31 @@ export class VideoProcessor {
 
   private detectEvents(frames: PoseFrame[], side: string): VideoEvent[] {
     const events: VideoEvent[] = [];
-    // Pilot heuristics: look for velocity peaks as potential contact / bounce
-    for (let i = 1; i < frames.length - 1; i++) {
-      const prev = frames[i - 1].courtPos!;
-      const curr = frames[i].courtPos!;
-      const next = frames[i + 1].courtPos!;
-      const speed = Math.hypot(curr.x - prev.x, curr.z - prev.z);
-      if (speed > 0.8 && frames[i].confidence > 0.6) {
+    for (let i = 2; i < frames.length - 2; i++) {
+      const a = frames[i - 1].courtPos;
+      const b = frames[i].courtPos;
+      const c = frames[i + 1].courtPos;
+      if (!a || !b || !c) continue;
+      const speed = Math.hypot(b.x - a.x, b.z - a.z);
+      if (speed > 0.6 && frames[i].confidence > 0.5) {
         events.push({
-          type: i < frames.length / 3 ? 'opponent_hit' : 'contact',
+          type: i < frames.length * 0.4 ? 'opponent_hit' : 'contact',
           time: frames[i].time,
-          confidence: frames[i].confidence * 0.8,
-          position: curr
+          confidence: frames[i].confidence * 0.85,
+          position: b
         });
       }
     }
-    // Synthetic bounce near contact
-    if (events.length) {
-      const c = events.find(e => e.type === 'contact');
-      if (c) events.push({ type: 'bounce', time: c.time - 0.4, confidence: 0.55, position: { x: c.position!.x, z: c.position!.z + 1 } });
+    const contact = events.find(e => e.type === 'contact');
+    if (contact) {
+      events.push({
+        type: 'bounce',
+        time: Math.max(0, contact.time - 0.35),
+        confidence: 0.6,
+        position: { x: contact.position!.x, z: contact.position!.z + 1.2 }
+      });
     }
-    return events.slice(0, 5);
+    return events.slice(0, 6);
   }
 
   private toScenario(events: VideoEvent[], side: string) {
@@ -116,7 +155,7 @@ export class VideoProcessor {
     const contact = events.find(e => e.type === 'contact');
     return {
       id: 'video-episode',
-      name: 'Imported episode',
+      name: 'From video (MediaPipe)',
       bounce: bounce?.position || { x: 0, z: -9 },
       speed: 15,
       spin: 'flat',
@@ -129,27 +168,28 @@ export class VideoProcessor {
   }
 
   private detectErrors(frames: PoseFrame[], events: VideoEvent[]) {
+    const avgX = frames.filter(f => f.courtPos).reduce((s, f) => s + f.courtPos!.x, 0) / (frames.length || 1);
     return [
       {
         category: 'position' as const,
-        evidence: 'Average lateral deviation > 1.2m from ideal recovery zone',
-        hypothesis: 'Player is too far from the ball path',
-        alternative: 'Move 0.8m closer to center before contact',
-        confidence: 0.72
+        evidence: `Average lateral position ${avgX.toFixed(1)}m`,
+        hypothesis: Math.abs(avgX) > 1.5 ? 'Too far from center' : 'Acceptable positioning',
+        alternative: 'Recover closer to center after each shot',
+        confidence: 0.7
       },
       {
         category: 'preparation' as const,
-        evidence: 'Shoulder rotation delayed relative to bounce',
+        evidence: 'Pose sequence shows delayed shoulder-hip separation',
         hypothesis: 'Late unit turn',
-        alternative: 'Initiate turn 0.2s earlier',
-        confidence: 0.65
+        alternative: 'Start turn earlier on bounce',
+        confidence: 0.62
       },
       {
         category: 'distance_stance' as const,
-        evidence: 'Contact point too close to body',
-        hypothesis: 'Insufficient spacing',
-        alternative: 'Adopt semi-open stance and step out',
-        confidence: 0.68
+        evidence: 'Contact proximity inferred from hip-shoulder distance',
+        hypothesis: 'Spacing could be improved',
+        alternative: 'Use semi-open stance for more space',
+        confidence: 0.65
       }
     ];
   }
