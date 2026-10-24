@@ -60,7 +60,7 @@ export class VideoProcessor {
   async analyze(file: File, playerSide: 'near' | 'far' = 'near'): Promise<AnalysisResult> {
     const duration = await this.getDuration(file);
     if (duration < 3 || duration > 180) {
-      return this.insufficient('Duration should be 3–180 seconds for analysis');
+      return this.insufficient('Длительность должна быть 3–180 секунд');
     }
 
     const frames = await this.extractPoseFrames(file, duration);
@@ -68,13 +68,13 @@ export class VideoProcessor {
     const avgConf = validFrames.reduce((s, f) => s + f.confidence, 0) / (validFrames.length || 1);
 
     let quality: Quality = 'suitable';
-    let reason = 'Good pose visibility';
+    let reason = 'Хорошая видимость позы';
     if (validFrames.length < 8 || avgConf < 0.4) {
       quality = 'insufficient';
-      reason = 'Low pose confidence — player poorly visible or video too short';
+      reason = 'Низкая уверенность позы — игрок плохо виден или видео слишком короткое';
     } else if (avgConf < 0.65 || validFrames.length < 15) {
       quality = 'partial';
-      reason = 'Partial pose data — some frames missing';
+      reason = 'Частичные данные позы — некоторые кадры пропущены';
     }
 
     if (quality === 'insufficient') {
@@ -163,7 +163,7 @@ export class VideoProcessor {
     const avgConf = frames.reduce((s, f) => s + f.confidence, 0) / (frames.length || 1);
     return {
       id: 'video-episode',
-      name: 'From video (AI analysis)',
+      name: 'Из видео (AI анализ)',
       bounce: bounce?.position || { x: 0, z: -9 },
       speed: contact ? Math.min(28, 12 + contact.confidence * 10) : 15,
       spin: 'flat',
@@ -180,9 +180,9 @@ export class VideoProcessor {
     if (valid.length < 5) {
       return [{
         category: 'position' as const,
-        evidence: 'Insufficient pose data',
-        hypothesis: 'Cannot reliably assess',
-        alternative: 'Record with better lighting and full body visible',
+        evidence: 'Недостаточно данных позы',
+        hypothesis: 'Невозможно надёжно оценить',
+        alternative: 'Снимайте с лучшим освещением и полным телом в кадре',
         confidence: 0.3
       }];
     }
@@ -197,54 +197,51 @@ export class VideoProcessor {
 
     const errors = [];
 
-    // Position
     if (Math.abs(avgX) > 1.8) {
       errors.push({
         category: 'position' as const,
-        evidence: `Average position ${avgX.toFixed(1)}m from center (max ${maxAbsX.toFixed(1)}m)`,
-        hypothesis: 'Staying too wide — poor recovery',
-        alternative: 'Recover toward center after each shot to cover more court',
+        evidence: `Средняя позиция ${avgX.toFixed(1)}м от центра (макс ${maxAbsX.toFixed(1)}м)`,
+        hypothesis: 'Стоите слишком широко — плохое восстановление',
+        alternative: 'Возвращайтесь к центру после каждого удара',
         confidence: Math.min(0.92, 0.55 + Math.abs(avgX) * 0.15)
       });
     } else if (recovery > 0.8) {
       errors.push({
         category: 'position' as const,
-        evidence: `Position drifted outward by ${recovery.toFixed(1)}m during point`,
-        hypothesis: 'Late or incomplete recovery',
-        alternative: 'Take smaller steps and recover earlier',
+        evidence: `Позиция сместилась на ${recovery.toFixed(1)}м за розыгрыш`,
+        hypothesis: 'Позднее или неполное восстановление',
+        alternative: 'Делайте меньшие шаги и восстанавливайтесь раньше',
         confidence: 0.75
       });
     } else {
       errors.push({
         category: 'position' as const,
-        evidence: `Average position ${avgX.toFixed(1)}m — within good range`,
-        hypothesis: 'Positioning acceptable',
-        alternative: 'Keep recovering to center',
+        evidence: `Средняя позиция ${avgX.toFixed(1)}м — в хорошем диапазоне`,
+        hypothesis: 'Позиционирование приемлемое',
+        alternative: 'Продолжайте восстанавливаться к центру',
         confidence: 0.8
       });
     }
 
-    // Preparation (simple shoulder/hip proxy from available data)
     const hasShoulders = valid.some(f => f.landmarks.length > 12);
     if (hasShoulders) {
       errors.push({
         category: 'preparation' as const,
-        evidence: 'Shoulder line movement detected across frames',
-        hypothesis: recovery > 0.5 ? 'Unit turn may start late' : 'Preparation timing looks reasonable',
-        alternative: 'Start shoulder turn as the ball leaves opponent racket',
+        evidence: 'Движение линии плеч обнаружено',
+        hypothesis: recovery > 0.5 ? 'Unit turn может начинаться поздно' : 'Время подготовки выглядит разумно',
+        alternative: 'Начинайте разворот плеч как только мяч уходит с ракетки соперника',
         confidence: 0.68
       });
     } else {
       errors.push({
         category: 'preparation' as const,
-        evidence: 'Limited upper-body landmarks',
-        hypothesis: 'Hard to judge preparation timing',
-        alternative: 'Film from side angle for better shoulder visibility',
+        evidence: 'Мало данных по верхней части тела',
+        hypothesis: 'Сложно оценить время подготовки',
+        alternative: 'Снимайте с боку для лучшей видимости плеч',
         confidence: 0.45
       });
     }
 
-    // Distance / stance
     const contact = events.find(e => e.type === 'contact');
     if (contact && contact.position) {
       const contactFrame = valid.find(f => Math.abs(f.time - contact.time) < 0.15);
@@ -253,17 +250,17 @@ export class VideoProcessor {
         : 1.2;
       errors.push({
         category: 'distance_stance' as const,
-        evidence: `Contact distance approx ${dist.toFixed(1)}m`,
-        hypothesis: dist > 1.8 ? 'Too far from ball' : dist < 0.6 ? 'Too close to ball' : 'Distance reasonable',
-        alternative: dist > 1.8 ? 'Adjust feet earlier and use open stance if needed' : 'Maintain arm extension',
+        evidence: `Дистанция до контакта примерно ${dist.toFixed(1)}м`,
+        hypothesis: dist > 1.8 ? 'Слишком далеко от мяча' : dist < 0.6 ? 'Слишком близко к мячу' : 'Дистанция приемлемая',
+        alternative: dist > 1.8 ? 'Корректируйте ноги раньше и используйте открытую стойку при необходимости' : 'Сохраняйте разгиб руки',
         confidence: 0.7
       });
     } else {
       errors.push({
         category: 'distance_stance' as const,
-        evidence: 'Contact event not clearly detected',
-        hypothesis: 'Cannot judge spacing reliably',
-        alternative: 'Record full swing with ball visible',
+        evidence: 'Контакт не обнаружен чётко',
+        hypothesis: 'Невозможно надёжно оценить дистанцию',
+        alternative: 'Снимайте полный удар с видимым мячом',
         confidence: 0.4
       });
     }
