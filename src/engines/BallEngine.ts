@@ -77,4 +77,7 @@ export class BallEngine {
 
   getContactTime() { return this.contactTime; }
   getBouncePoint() { return this.params.bouncePoint; }
+  getContactPoint(): THREE.Vector3 {
+    return this.getPosition(this.contactTime);
+  }
 }
