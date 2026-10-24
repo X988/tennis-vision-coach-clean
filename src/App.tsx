@@ -48,14 +48,31 @@ function playHitSound() {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'triangle';
-    osc.frequency.setValueAtTime(180, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(90, ctx.currentTime + 0.08);
-    gain.gain.setValueAtTime(0.35, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.12);
+    osc.frequency.setValueAtTime(220, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.09);
+    gain.gain.setValueAtTime(0.4, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.14);
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.start();
-    osc.stop(ctx.currentTime + 0.13);
+    osc.stop(ctx.currentTime + 0.15);
+  } catch {}
+}
+
+function playBounceSound() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(140, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(70, ctx.currentTime + 0.06);
+    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.09);
   } catch {}
 }
 
@@ -87,6 +104,7 @@ export default function App() {
   const recognitionRef = useRef<any>(null);
   const [showHelp, setShowHelp] = useState(true);
   const lastContactPlayed = useRef(-1);
+  const lastBouncePlayed = useRef(-1);
 
   const playerStart = new THREE.Vector3(0, 0, -10.8);
   const reachInfo = reach.canReach(sc.bounce, ball.getContactTime(), playerStart);
@@ -98,6 +116,7 @@ export default function App() {
     anim.setContactTime(ball.getContactTime());
     setSimTime(0); anim.reset(); setUserStance(null); setShowHint(false);
     lastContactPlayed.current = -1;
+    lastBouncePlayed.current = -1;
   }, [scIdx, customScenario]);
 
   useEffect(() => {
@@ -111,9 +130,14 @@ export default function App() {
         setSimTime(s => {
           const next = s + 0.016 * speed;
           const ct = ball.getContactTime();
+          const bt = ball.getBounceTime();
           if (lastContactPlayed.current < 0 && next >= ct && s < ct) {
             playHitSound();
             lastContactPlayed.current = ct;
+          }
+          if (lastBouncePlayed.current < 0 && next >= bt && s < bt) {
+            playBounceSound();
+            lastBouncePlayed.current = bt;
           }
           return next;
         });
@@ -131,6 +155,7 @@ export default function App() {
     setPlaying(false); setSimTime(0); anim.reset();
     setUserStance(null); setShowHint(false);
     lastContactPlayed.current = -1;
+    lastBouncePlayed.current = -1;
     if (listening) { recognitionRef.current?.stop(); setListening(false); }
   };
 
@@ -219,16 +244,23 @@ export default function App() {
           <>
             <div className="canvas-wrap">
               <Canvas shadows camera={{ position: [0, 6, 12], fov: 50 }}>
-                <color attach="background" args={['#87a0b5']} />
-                <ambientLight intensity={0.45} />
+                <color attach="background" args={['#6b8cae']} />
+                <fog attach="fog" args={['#6b8cae', 18, 40]} />
+                <ambientLight intensity={0.5} />
                 <directionalLight
                   position={[12, 22, 8]}
-                  intensity={1.4}
+                  intensity={1.5}
                   castShadow
                   shadow-mapSize-width={2048}
                   shadow-mapSize-height={2048}
+                  shadow-camera-far={40}
+                  shadow-camera-left={-15}
+                  shadow-camera-right={15}
+                  shadow-camera-top={15}
+                  shadow-camera-bottom={-15}
                 />
-                <directionalLight position={[-8, 12, -6]} intensity={0.35} color="#a0c4ff" />
+                <directionalLight position={[-10, 14, -8]} intensity={0.4} color="#b0d0ff" />
+                <hemisphereLight args={['#87ceeb', '#2d5a27', 0.35]} />
                 {cam === 'top' && <PerspectiveCamera makeDefault position={[0, 22, 0]} fov={45} />}
                 {cam === 'side' && <PerspectiveCamera makeDefault position={[14, 4, -2]} fov={45} />}
                 {cam === 'back' && <PerspectiveCamera makeDefault position={[0, 3.5, -16]} fov={50} />}
@@ -237,7 +269,7 @@ export default function App() {
                 <Layers engine={ball} simTime={simTime} show={showLayers} />
                 <Ball engine={ball} simTime={simTime} />
                 <Player pos={playerPos} stance={(userStance || dec.recommended) as Stance} shot={sc.shot as any} handed={sc.handed as any} anim={anim} simTime={simTime} />
-                <ContactShadows position={[0, 0.01, 0]} opacity={0.4} scale={20} blur={2.5} far={8} />
+                <ContactShadows position={[0, 0.01, 0]} opacity={0.45} scale={22} blur={2.8} far={10} />
               </Canvas>
               {showCompare && <CompareView studentScenario={{ ...sc, stance: userStance || 'neutral' }} recommendedScenario={{ ...sc, stance: dec.recommended }} />}
             </div>
