@@ -17,6 +17,7 @@ import { MatchCoach } from './components/MatchCoach';
 import { LiveCoach } from './components/LiveCoach';
 import { CompareView } from './components/CompareView';
 import { FeedbackPanel } from './components/FeedbackPanel';
+import { PhaseVisualizer } from './components/PhaseVisualizer';
 import { saveAttempt, getStats } from './lib/storage';
 
 const STANCE_KEYWORDS: Record<string, Record<Stance, string[]>> = {
@@ -280,6 +281,13 @@ export default function App() {
             </div>
 
             <div className="controls-panel">
+              <PhaseVisualizer
+                simTime={simTime}
+                contactTime={ball.getContactTime()}
+                bounceTime={ball.getBounceTime()}
+                playing={playing}
+              />
+
               <div className="hint" style={{ padding: '8px 12px', fontSize: 13, color: '#4ade80' }}>
                 1. Выберите сценарий → 2. Нажмите «Играть» → 3. Смотрите удар
               </div>
