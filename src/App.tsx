@@ -13,6 +13,8 @@ import { Player } from './components/Player';
 import { Layers } from './components/Layers';
 import { VideoCoach } from './components/VideoCoach';
 import { MatchCoach } from './components/MatchCoach';
+import { LiveCoach } from './components/LiveCoach';
+import { CompareView } from './components/CompareView';
 import { saveAttempt, getStats } from './lib/storage';
 
 const STANCE_KEYWORDS: Record<string, Record<Stance, string[]>> = {
@@ -44,8 +46,9 @@ export default function App() {
   const [speed, setSpeed] = useState(1);
   const [cam, setCam] = useState<'top'|'side'|'back'|'free'>('free');
   const [mode, setMode] = useState<'play'|'decide'|'compare'>('play');
-  const [tab, setTab] = useState<'3d'|'video'|'match'>('3d');
+  const [tab, setTab] = useState<'3d'|'video'|'match'|'live'>('3d');
   const [showLayers, setShowLayers] = useState(true);
+  const [showCompare, setShowCompare] = useState(false);
   const [userStance, setUserStance] = useState<Stance | null>(null);
   const [showHint, setShowHint] = useState(false);
   const [stats, setStats] = useState({ total: 0, correct: 0 });
@@ -138,7 +141,7 @@ export default function App() {
 
   return (
     <>
-      <Canvas shadows>
+      <Canvas shadows style={{ display: showCompare ? 'none' : 'block' }}>
         <ambientLight intensity={0.55} />
         <directionalLight position={[8, 18, 6]} intensity={1.1} />
         {cam === 'top' && <PerspectiveCamera makeDefault position={[0, 22, 0]} fov={45} />}
@@ -150,12 +153,20 @@ export default function App() {
         <Ball engine={ball} simTime={simTime} />
         <Player pos={playerPos} stance={(userStance || dec.recommended) as Stance} shot={sc.shot as any} handed={sc.handed as any} anim={anim} simTime={simTime} />
       </Canvas>
+      {showCompare && (
+        <CompareView
+          studentScenario={{ ...sc, stance: userStance || 'neutral' }}
+          recommendedScenario={{ ...sc, stance: dec.recommended }}
+        />
+      )}
       <div className="controls">
         <div>
           <button onClick={() => setTab('3d')}>3D Coach</button>
           <button onClick={() => setTab('video')}>AI Video</button>
           <button onClick={() => setTab('match')}>Full Match</button>
+          <button onClick={() => setTab('live')}>Live</button>
         </div>
+        {tab === 'live' && <LiveCoach />}
         {tab === 'video' && <VideoCoach onReplay={onReplay} />}
         {tab === 'match' && <MatchCoach onReplay={onReplay} />}
         {tab === '3d' && (
@@ -169,6 +180,7 @@ export default function App() {
                 <option value={1}>1x</option>
               </select>
               <button onClick={() => setShowLayers(s => !s)}>{showLayers ? 'Hide layers' : 'Show layers'}</button>
+              <button onClick={() => setShowCompare(s => !s)}>{showCompare ? 'Single' : 'Compare'}</button>
             </div>
             <div>
               Cam: <button onClick={() => setCam('top')}>Top</button>
