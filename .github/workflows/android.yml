@@ -48,6 +48,17 @@ jobs:
       - name: Add Capacitor Android
         run: npx cap add android
 
+      - name: Add camera permissions
+        run: |
+          MANIFEST=android/app/src/main/AndroidManifest.xml
+          # Insert permissions after the <manifest> tag
+          sed -i '/<manifest/a\
+    <uses-permission android:name="android.permission.CAMERA" />\
+    <uses-feature android:name="android.hardware.camera" android:required="false" />\
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />' "$MANIFEST"
+          echo "Permissions added"
+          grep -A5 "<manifest" "$MANIFEST" || true
+
       - name: Sync Capacitor
         run: npx cap sync android
 
