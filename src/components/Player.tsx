@@ -23,6 +23,8 @@ export function Player({
 }) {
   const arm = useRef<THREE.Mesh>(null!);
   const group = useRef<THREE.Group>(null!);
+  const footL = useRef<THREE.Mesh>(null!);
+  const footR = useRef<THREE.Mesh>(null!);
   const [fx1, fz1, fx2, fz2] = footOffsets[stance];
   const side = handed === 'right' ? 1 : -1;
   const isFH = (shot === 'forehand') === (handed === 'right');
@@ -31,9 +33,23 @@ export function Player({
     if (group.current) group.current.position.copy(pos);
     const p = anim.progress();
     const swing = Math.sin(p * Math.PI * 2) * 1.4;
+
     if (arm.current) {
       arm.current.rotation.z = (isFH ? -1 : 1) * swing * side * 0.9;
       arm.current.rotation.y = swing * 0.6 * side;
+    }
+
+    // Foot animation: step / weight transfer during swing
+    const step = Math.sin(p * Math.PI * 2) * 0.12;
+    const lift = Math.max(0, Math.sin(p * Math.PI * 2)) * 0.06;
+
+    if (footL.current) {
+      footL.current.position.set(fx1 * side + step * side, 0.05 + lift, fz1);
+      footL.current.rotation.y = step * 0.8 * side;
+    }
+    if (footR.current) {
+      footR.current.position.set(fx2 * side - step * side, 0.05 + (lift * 0.6), fz2);
+      footR.current.rotation.y = -step * 0.5 * side;
     }
   });
 
@@ -47,12 +63,12 @@ export function Player({
         <sphereGeometry args={[0.18]} />
         <meshStandardMaterial color="#ffdbac" />
       </mesh>
-      {/* Feet */}
-      <mesh position={[fx1 * side, 0.05, fz1]}>
+      {/* Animated feet */}
+      <mesh ref={footL} position={[fx1 * side, 0.05, fz1]}>
         <boxGeometry args={[0.18, 0.08, 0.3]} />
         <meshStandardMaterial color="#222" />
       </mesh>
-      <mesh position={[fx2 * side, 0.05, fz2]}>
+      <mesh ref={footR} position={[fx2 * side, 0.05, fz2]}>
         <boxGeometry args={[0.18, 0.08, 0.3]} />
         <meshStandardMaterial color="#222" />
       </mesh>
