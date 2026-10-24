@@ -24,39 +24,43 @@ export function MatchCoach({ onReplay }: { onReplay: (scenario: any) => void }) 
   };
 
   return (
-    <div className="controls" style={{ maxWidth: 480 }}>
-      <b>AI Video Coach — Full Matches (Stage 5)</b><br/>
-      <input type="file" accept="video/*" onChange={upload} /><br/>
+    <div className="panel">
+      <h3>Полный матч</h3>
+      <input type="file" accept="video/*" onChange={upload} style={{ margin: '8px 0' }} /><br/>
       {job && (
-        <div className="panel">
-          Status: {job.status} ({job.progress}%) — {job.message}<br/>
-          {job.status === 'processing' && <button onClick={() => proc.cancel(job.id)}>Cancel</button>}
+        <div style={{ margin: '10px 0' }}>
+          Статус: {job.status} ({job.progress}%) — {job.message}<br/>
+          {job.status === 'processing' && <button onClick={() => proc.cancel(job.id)}>Отменить</button>}
         </div>
       )}
       {analysis && (
-        <div className="panel">
-          Quality: {analysis.quality} | Model: {analysis.modelVersion}<br/>
-          Rallies: {analysis.rallies.length}<br/>
-          <select value={filter} onChange={e => setFilter(e.target.value)}>
-            <option value="all">All</option>
-            <option value="position">Position errors</option>
-            <option value="preparation">Preparation</option>
-            <option value="distance_stance">Distance/stance</option>
+        <div>
+          Качество: {analysis.quality}<br/>
+          Розыгрыши: {analysis.rallies.length}<br/>
+          <select value={filter} onChange={e => setFilter(e.target.value)} style={{ margin: '8px 0' }}>
+            <option value="all">Все</option>
+            <option value="position">Позиция</option>
+            <option value="preparation">Подготовка</option>
+            <option value="distance_stance">Дистанция/стойка</option>
           </select>
-          <div style={{ fontSize: 12, maxHeight: 180, overflow: 'auto' }}>
+          <div style={{ maxHeight: 200, overflow: 'auto', fontSize: 13 }}>
             {analysis.rallies.map(r => (
-              <div key={r.id}>Rally {r.start.toFixed(0)}–{r.end.toFixed(0)}s ({r.shots.length} shots)
-                <button onClick={() => onReplay({ id: r.id, name: `Rally ${r.id}`, bounce: { x: 0, z: -9 }, speed: 15, spin: 'flat', height: 0.6, shot: 'forehand', handed: 'right', uncertainty: 0.3 })}>Replay</button>
+              <div key={r.id} style={{ padding: '4px 0', borderBottom: '1px solid #333' }}>
+                {r.start.toFixed(0)}–{r.end.toFixed(0)}с ({r.shots.length} ударов)
+                <button onClick={() => onReplay({ id: r.id, name: `Розыгрыш ${r.id}`, bounce: { x: 0, z: -9 }, speed: 15, spin: 'flat', height: 0.6, shot: 'forehand', handed: 'right', uncertainty: 0.3 })} style={{ marginLeft: 8 }}>В 3D</button>
               </div>
             ))}
           </div>
-          <b>Patterns:</b>
-          {analysis.errorPatterns.filter(p => filter === 'all' || p.category === filter).map(p => (
-            <div key={p.category}>{p.category}: {p.count}× (conf {(p.avgConfidence*100).toFixed(0)}%)</div>
-          ))}
-          <b>Training plan:</b>
-          {analysis.trainingPlan.map(t => <div key={t.focus}>{t.priority}. {t.focus}: {t.drills.join(', ')}</div>)}
-          <div style={{ fontSize: 11, color: '#aaa' }}>Limitations: {analysis.limitations.join('; ')}</div>
+          <div style={{ marginTop: 10 }}>
+            <b>Паттерны:</b>
+            {analysis.errorPatterns.filter(p => filter === 'all' || p.category === filter).map(p => (
+              <div key={p.category}>{p.category}: {p.count}×</div>
+            ))}
+          </div>
+          <div style={{ marginTop: 8 }}>
+            <b>План тренировок:</b>
+            {analysis.trainingPlan.map(t => <div key={t.focus}>{t.priority}. {t.focus}</div>)}
+          </div>
         </div>
       )}
     </div>
