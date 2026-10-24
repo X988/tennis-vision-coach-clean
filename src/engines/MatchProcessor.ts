@@ -48,7 +48,7 @@ export class MatchProcessor {
     j.status = 'processing';
     try {
       for (let p = 10; p <= 90; p += 20) {
-        if (j.status === 'cancelled') return;
+        if ((j.status as string) === 'cancelled') return;
         await new Promise(r => setTimeout(r, 400));
         j.progress = p;
         j.message = `Processing ${p}%`;
