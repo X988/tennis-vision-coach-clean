@@ -15,6 +15,7 @@ export class BallEngine {
   trajectory: THREE.Vector3[] = [];
   times: number[] = [];
   contactTime = 1.2;
+  bounceTime = 0.8;
   playerTarget = new THREE.Vector3(0, 0.9, -10.5);
 
   constructor(params: BallParams) {
@@ -59,6 +60,7 @@ export class BallEngine {
         vel.x *= 0.95;
         vel.z *= 0.95;
         bounced = true;
+        this.bounceTime = t;
       }
       const dist = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(this.playerTarget.x, this.playerTarget.z));
       if (dist < 0.8 && this.contactTime > t) this.contactTime = t;
@@ -76,6 +78,7 @@ export class BallEngine {
   }
 
   getContactTime() { return this.contactTime; }
+  getBounceTime() { return this.bounceTime; }
   getBouncePoint() { return this.params.bouncePoint; }
   getContactPoint(): THREE.Vector3 {
     return this.getPosition(this.contactTime);
