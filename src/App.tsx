@@ -18,7 +18,7 @@ import { CompareView } from './components/CompareView';
 import { saveAttempt, getStats } from './lib/storage';
 
 const STANCE_KEYWORDS: Record<string, Record<Stance, string[]>> = {
-  'ru-RU': { open: ['открытая', 'открытый'], 'semi-open': ['полуоткрытая', 'полуоткрытый'], neutral: ['нейтральная'], closed: ['закрытая'] },
+  'ru-RU': { open: ['открытая', 'открытый', 'открой'], 'semi-open': ['полуоткрытая', 'полуоткрытый', 'полуоткрой'], neutral: ['нейтральная', 'нейтрал'], closed: ['закрытая', 'закрытый', 'закрой'] },
   'en-US': { open: ['open'], 'semi-open': ['semi'], neutral: ['neutral'], closed: ['closed'] },
 };
 
@@ -66,6 +66,7 @@ export default function App() {
   const [stats, setStats] = useState({ total: 0, correct: 0 });
   const [lang] = useState('ru-RU');
   const [listening, setListening] = useState(false);
+  const [voiceStatus, setVoiceStatus] = useState('');
   const recognitionRef = useRef<any>(null);
   const [showHelp, setShowHelp] = useState(true);
 
@@ -80,7 +81,6 @@ export default function App() {
     setSimTime(0); anim.reset(); setUserStance(null); setShowHint(false);
   }, [scIdx, customScenario]);
 
-  // Sync playing state to AnimationEngine
   useEffect(() => {
     anim.setPlaying(playing);
   }, [playing]);
@@ -109,24 +109,64 @@ export default function App() {
     await saveAttempt(sc.id, s, correct);
     setStats(await getStats());
     setShowHint(true);
+    setVoiceStatus(`Выбрана: ${stanceLabel[s]}`);
   };
 
   const startListening = () => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) return alert('Голос не поддерживается');
+    if (!SR) {
+      setVoiceStatus('Голос не поддерживается');
+      return;
+    }
     const rec = new SR();
     rec.lang = lang;
+    rec.continuous = false;
+    rec.interimResults = false;
     rec.onresult = (e: any) => {
       const text = e.results[0][0].transcript.toLowerCase();
+      setVoiceStatus(`Слышал: «${text}»`);
+
+      // Stance
       const map = STANCE_KEYWORDS[lang];
       for (const [st, words] of Object.entries(map)) {
-        if (words.some(w => text.includes(w))) { onStancePick(st as Stance); break; }
+        if (words.some(w => text.includes(w))) {
+          onStancePick(st as Stance);
+          return;
+        }
       }
+
+      // Commands
+      if (text.includes('игра') || text.includes('старт') || text.includes('play')) {
+        setPlaying(true);
+        setVoiceStatus('Играть');
+      } else if (text.includes('пауз') || text.includes('стоп') || text.includes('pause')) {
+        setPlaying(false);
+        setVoiceStatus('Пауза');
+      } else if (text.includes('сброс') || text.includes('reset')) {
+        reset();
+        setVoiceStatus('Сброс');
+      } else if (text.includes('сверх') || text.includes('top')) {
+        setCam('top');
+        setVoiceStatus('Камера сверху');
+      } else if (text.includes('сбок') || text.includes('side')) {
+        setCam('side');
+        setVoiceStatus('Камера сбоку');
+      } else if (text.includes('сзад') || text.includes('back')) {
+        setCam('back');
+        setVoiceStatus('Камера сзади');
+      } else {
+        setVoiceStatus('Не распознал команду');
+      }
+    };
+    rec.onerror = () => {
+      setVoiceStatus('Ошибка распознавания');
+      setListening(false);
     };
     rec.onend = () => setListening(false);
     recognitionRef.current = rec;
     rec.start();
     setListening(true);
+    setVoiceStatus('Слушаю...');
   };
 
   const onReplay = (scenario: any) => {
@@ -216,7 +256,14 @@ export default function App() {
               <option value={0.25}>0.25x</option>
               <option value={1}>1x</option>
             </select>
+            <button onClick={listening ? () => { recognitionRef.current?.stop(); setListening(false); } : startListening}>
+              {listening ? '🔴 Стоп' : '🎙 Голос'}
+            </button>
           </div>
+
+          {voiceStatus && (
+            <div style={{ padding: '0 12px 6px', fontSize: 12, color: '#a0e0a0' }}>{voiceStatus}</div>
+          )}
 
           <div className="controls-row" style={{ padding: '0 10px' }}>
             <button onClick={() => setShowLayers(s => !s)}>{showLayers ? T.hideLayers : T.showLayers}</button>
@@ -248,11 +295,6 @@ export default function App() {
               <option value="decide">{T.decide} — сначала выбери стойку</option>
               <option value="compare">{T.compare} — сравни с правильным</option>
             </select>
-            {(mode === 'decide' || mode === 'compare') && (
-              <button onClick={listening ? () => { recognitionRef.current?.stop(); setListening(false); } : startListening}>
-                {listening ? 'Стоп голос' : 'Сказать стойку голосом'}
-              </button>
-            )}
           </div>
 
           {(mode === 'decide' || mode === 'compare') && (
