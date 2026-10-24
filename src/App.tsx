@@ -21,14 +21,50 @@ const STANCE_KEYWORDS: Record<string, Record<Stance, string[]>> = {
   'en-US': { open: ['open'], 'semi-open': ['semi open', 'semi-open', 'semi'], neutral: ['neutral'], closed: ['closed'] },
   'ru-RU': { open: ['открытая', 'открытый'], 'semi-open': ['полуоткрытая', 'полуоткрытый', 'полу'], neutral: ['нейтральная', 'нейтральный'], closed: ['закрытая', 'закрытый'] },
   'uk-UA': { open: ['відкрита', 'відкритий'], 'semi-open': ['напіввідкрита', 'напіввідкритий'], neutral: ['нейтральна'], closed: ['закрита'] },
-  'es-ES': { open: ['abierta'], 'semi-open': ['semi abierta', 'semiabierta'], neutral: ['neutral'], closed: ['cerrada'] },
-  'fr-FR': { open: ['ouverte'], 'semi-open': ['semi ouverte', 'semi-ouverte'], neutral: ['neutre'], closed: ['fermée'] },
-  'de-DE': { open: ['offen'], 'semi-open': ['halb offen', 'halboffen'], neutral: ['neutral'], closed: ['geschlossen'] },
-  'zh-CN': { open: ['开放', '开式'], 'semi-open': ['半开放', '半开'], neutral: ['中性', '中立'], closed: ['关闭', '闭式'] },
-  'ja-JP': { open: ['オープン'], 'semi-open': ['セミオープン'], neutral: ['ニュートラル'], closed: ['クローズド'] },
 };
 
 const LANGS = Object.keys(STANCE_KEYWORDS);
+
+const T = {
+  tabs: { '3d': '3D Тренер', video: 'AI Видео', match: 'Полный матч', live: 'Живой' },
+  play: 'Играть',
+  pause: 'Пауза',
+  step: 'Шаг',
+  reset: 'Сброс',
+  hideLayers: 'Скрыть слои',
+  showLayers: 'Показать слои',
+  single: 'Один',
+  compare: 'Сравнение',
+  cam: 'Камера',
+  top: 'Сверху',
+  side: 'Сбоку',
+  back: 'Сзади',
+  free: 'Свободно',
+  scenario: 'Сценарий',
+  library: 'Библиотека',
+  mode: 'Режим',
+  playMode: 'Просмотр',
+  decide: 'Сначала решение',
+  lang: 'Язык',
+  stopMic: 'Стоп микрофон',
+  voiceStance: 'Голосом стойку',
+  chooseStance: 'Выберите стойку',
+  recommended: 'Рекомендовано',
+  alt: 'Альтернативы',
+  progress: 'Прогресс',
+  correct: 'правильно',
+  open: 'Открытая',
+  semiOpen: 'Полуоткрытая',
+  neutral: 'Нейтральная',
+  closed: 'Закрытая',
+};
+
+const stanceLabel: Record<Stance, string> = {
+  open: T.open,
+  'semi-open': T.semiOpen,
+  neutral: T.neutral,
+  closed: T.closed,
+};
 
 export default function App() {
   const [scIdx, setScIdx] = useState(0);
@@ -52,7 +88,7 @@ export default function App() {
   const [userStance, setUserStance] = useState<Stance | null>(null);
   const [showHint, setShowHint] = useState(false);
   const [stats, setStats] = useState({ total: 0, correct: 0 });
-  const [lang, setLang] = useState('en-US');
+  const [lang, setLang] = useState('ru-RU');
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<any>(null);
 
@@ -107,14 +143,14 @@ export default function App() {
 
   const startListening = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) { alert('Speech recognition not supported'); return; }
+    if (!SpeechRecognition) { alert('Распознавание речи не поддерживается'); return; }
     const rec = new SpeechRecognition();
     rec.lang = lang;
     rec.continuous = false;
     rec.interimResults = false;
     rec.onresult = (e: any) => {
       const text = e.results[0][0].transcript.toLowerCase();
-      const map = STANCE_KEYWORDS[lang] || STANCE_KEYWORDS['en-US'];
+      const map = STANCE_KEYWORDS[lang] || STANCE_KEYWORDS['ru-RU'];
       for (const [stance, words] of Object.entries(map)) {
         if (words.some(w => text.includes(w))) {
           onStancePick(stance as Stance);
@@ -161,10 +197,10 @@ export default function App() {
       )}
       <div className="controls">
         <div>
-          <button onClick={() => setTab('3d')}>3D Coach</button>
-          <button onClick={() => setTab('video')}>AI Video</button>
-          <button onClick={() => setTab('match')}>Full Match</button>
-          <button onClick={() => setTab('live')}>Live</button>
+          <button onClick={() => setTab('3d')}>{T.tabs['3d']}</button>
+          <button onClick={() => setTab('video')}>{T.tabs.video}</button>
+          <button onClick={() => setTab('match')}>{T.tabs.match}</button>
+          <button onClick={() => setTab('live')}>{T.tabs.live}</button>
         </div>
         {tab === 'live' && <LiveCoach />}
         {tab === 'video' && <VideoCoach onReplay={onReplay} />}
@@ -172,65 +208,65 @@ export default function App() {
         {tab === '3d' && (
           <>
             <div>
-              <button onClick={() => setPlaying(p => !p)}>{playing ? 'Pause' : 'Play'}</button>
-              <button onClick={() => setSimTime(t => t + 0.05)}>Step</button>
-              <button onClick={reset}>Reset</button>
+              <button onClick={() => setPlaying(p => !p)}>{playing ? T.pause : T.play}</button>
+              <button onClick={() => setSimTime(t => t + 0.05)}>{T.step}</button>
+              <button onClick={reset}>{T.reset}</button>
               <select value={speed} onChange={e => setSpeed(+e.target.value)}>
                 <option value={0.25}>0.25x</option>
                 <option value={1}>1x</option>
               </select>
-              <button onClick={() => setShowLayers(s => !s)}>{showLayers ? 'Hide layers' : 'Show layers'}</button>
-              <button onClick={() => setShowCompare(s => !s)}>{showCompare ? 'Single' : 'Compare'}</button>
+              <button onClick={() => setShowLayers(s => !s)}>{showLayers ? T.hideLayers : T.showLayers}</button>
+              <button onClick={() => setShowCompare(s => !s)}>{showCompare ? T.single : T.compare}</button>
             </div>
             <div>
-              Cam: <button onClick={() => setCam('top')}>Top</button>
-              <button onClick={() => setCam('side')}>Side</button>
-              <button onClick={() => setCam('back')}>Back</button>
-              <button onClick={() => setCam('free')}>Free</button>
+              {T.cam}: <button onClick={() => setCam('top')}>{T.top}</button>
+              <button onClick={() => setCam('side')}>{T.side}</button>
+              <button onClick={() => setCam('back')}>{T.back}</button>
+              <button onClick={() => setCam('free')}>{T.free}</button>
             </div>
             <div className="panel">
-              Scenario: {customScenario ? <b>{customScenario.name}</b> : (
+              {T.scenario}: {customScenario ? <b>{customScenario.name}</b> : (
                 <select value={scIdx} onChange={e => { setCustomScenario(null); setScIdx(+e.target.value); }}>
                   {scenarios.map((s, i) => <option key={s.id} value={i}>{s.name}</option>)}
                 </select>
               )}
-              {customScenario && <button onClick={() => setCustomScenario(null)}>Library</button>}
+              {customScenario && <button onClick={() => setCustomScenario(null)}>{T.library}</button>}
             </div>
             <div className="panel">
-              Mode: <select value={mode} onChange={e => setMode(e.target.value as any)}>
-                <option value="play">Play</option>
-                <option value="decide">Decide first</option>
-                <option value="compare">Compare</option>
+              {T.mode}: <select value={mode} onChange={e => setMode(e.target.value as any)}>
+                <option value="play">{T.playMode}</option>
+                <option value="decide">{T.decide}</option>
+                <option value="compare">{T.compare}</option>
               </select>
             </div>
             <div className="panel">
-              Lang: <select value={lang} onChange={e => setLang(e.target.value)}>
+              {T.lang}: <select value={lang} onChange={e => setLang(e.target.value)}>
                 {LANGS.map(l => <option key={l} value={l}>{l}</option>)}
               </select>
               {(mode === 'decide' || mode === 'compare') && (
                 <button onClick={listening ? stopListening : startListening}>
-                  {listening ? 'Stop mic' : 'Voice stance'}
+                  {listening ? T.stopMic : T.voiceStance}
                 </button>
               )}
             </div>
             {(mode === 'decide' || mode === 'compare') && (
               <div className="panel">
-                Choose stance:
+                {T.chooseStance}:
                 {(['open','semi-open','neutral','closed'] as Stance[]).map(st => (
-                  <button key={st} className={`stance-btn ${userStance === st ? (userStance === dec.recommended ? 'correct' : 'wrong') : ''}`} onClick={() => onStancePick(st)}>{st}</button>
+                  <button key={st} className={`stance-btn ${userStance === st ? (userStance === dec.recommended ? 'correct' : 'wrong') : ''}`} onClick={() => onStancePick(st)}>{stanceLabel[st]}</button>
                 ))}
               </div>
             )}
             {(showHint || mode === 'play' || mode === 'compare') && (
               <div className="panel">
                 <b>{reachInfo.ok ? '✓' : '✗'} {reachInfo.reason}</b><br/>
-                Recommended: <b>{dec.recommended}</b><br/>
-                Alt: {dec.alternatives.join(', ')}<br/>
+                {T.recommended}: <b>{stanceLabel[dec.recommended as Stance] || dec.recommended}</b><br/>
+                {T.alt}: {dec.alternatives.map(a => stanceLabel[a as Stance] || a).join(', ')}<br/>
                 {dec.explanation}
-                {customScenario?.uncertainty && <div>Uncertainty: {(customScenario.uncertainty*100).toFixed(0)}%</div>}
+                {customScenario?.uncertainty && <div>Неопределённость: {(customScenario.uncertainty*100).toFixed(0)}%</div>}
               </div>
             )}
-            <div className="panel">Progress: {stats.correct}/{stats.total} correct</div>
+            <div className="panel">{T.progress}: {stats.correct}/{stats.total} {T.correct}</div>
           </>
         )}
       </div>
