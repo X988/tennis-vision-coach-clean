@@ -80,6 +80,11 @@ export default function App() {
     setSimTime(0); anim.reset(); setUserStance(null); setShowHint(false);
   }, [scIdx, customScenario]);
 
+  // Sync playing state to AnimationEngine
+  useEffect(() => {
+    anim.setPlaying(playing);
+  }, [playing]);
+
   useEffect(() => {
     let id: number;
     const loop = () => {
