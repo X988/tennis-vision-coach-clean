@@ -9,6 +9,7 @@ export function LiveCoach({ onHint }: { onHint?: (msg: string) => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const landmarkerRef = useRef<PoseLandmarker | null>(null);
   const rafRef = useRef<number>(0);
+  const historyRef = useRef<{ shoulderW: number; hipW: number; t: number }[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -23,7 +24,9 @@ export function LiveCoach({ onHint }: { onHint?: (msg: string) => void }) {
             delegate: 'GPU'
           },
           runningMode: 'VIDEO',
-          numPoses: 1
+          numPoses: 1,
+          minPoseDetectionConfidence: 0.5,
+          minTrackingConfidence: 0.5
         });
         if (!cancelled) {
           landmarkerRef.current = landmarker;
@@ -73,20 +76,41 @@ export function LiveCoach({ onHint }: { onHint?: (msg: string) => void }) {
       const rightShoulder = landmarks[12];
       const leftHip = landmarks[23];
       const rightHip = landmarks[24];
+      const leftKnee = landmarks[25];
+      const rightKnee = landmarks[26];
+
       if (leftShoulder && rightShoulder && leftHip && rightHip) {
         const shoulderWidth = Math.abs(leftShoulder.x - rightShoulder.x);
         const hipWidth = Math.abs(leftHip.x - rightHip.x);
-        let hint = '';
-        if (shoulderWidth < 0.12) hint = 'Разворот раньше';
-        else if (hipWidth < 0.08) hint = 'Открой стойку шире';
-        else hint = 'Хорошая позиция';
+        const now = performance.now();
 
-        if (hint !== lastHint) {
+        historyRef.current.push({ shoulderW: shoulderWidth, hipW: hipWidth, t: now });
+        if (historyRef.current.length > 30) historyRef.current.shift();
+
+        let hint = '';
+        const recent = historyRef.current.slice(-10);
+        const avgShoulder = recent.reduce((s, h) => s + h.shoulderW, 0) / recent.length;
+        const avgHip = recent.reduce((s, h) => s + h.hipW, 0) / recent.length;
+
+        if (avgShoulder < 0.10) {
+          hint = 'Разворот плеч раньше';
+        } else if (avgHip < 0.07) {
+          hint = 'Открой стойку шире';
+        } else if (leftKnee && rightKnee) {
+          const kneeBend = Math.abs(leftKnee.y - leftHip.y) + Math.abs(rightKnee.y - rightHip.y);
+          if (kneeBend < 0.25) hint = 'Приседь ниже';
+          else hint = 'Хорошая позиция';
+        } else {
+          hint = 'Хорошая позиция';
+        }
+
+        if (hint && hint !== lastHint) {
           setLastHint(hint);
           onHint?.(hint);
-          if ('speechSynthesis' in window) {
+          if ('speechSynthesis' in window && hint !== 'Хорошая позиция') {
             const u = new SpeechSynthesisUtterance(hint);
             u.lang = 'ru-RU';
+            u.rate = 1.05;
             speechSynthesis.cancel();
             speechSynthesis.speak(u);
           }
@@ -105,7 +129,6 @@ export function LiveCoach({ onHint }: { onHint?: (msg: string) => void }) {
     setStatus('Запрос камеры...');
     try {
       let stream: MediaStream | null = null;
-      // Try rear camera first, then front
       const constraints = [
         { video: { facingMode: { ideal: 'environment' }, width: { ideal: 640 }, height: { ideal: 480 } } },
         { video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } },
@@ -124,6 +147,7 @@ export function LiveCoach({ onHint }: { onHint?: (msg: string) => void }) {
       }
       setActive(true);
       setStatus('Живой');
+      historyRef.current = [];
       rafRef.current = requestAnimationFrame(analyze);
     } catch (err: any) {
       console.error(err);
@@ -141,6 +165,7 @@ export function LiveCoach({ onHint }: { onHint?: (msg: string) => void }) {
     setActive(false);
     setLastHint('');
     setStatus('Остановлено');
+    historyRef.current = [];
   };
 
   return (
