@@ -1,5 +1,5 @@
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
+import { OrbitControls, PerspectiveCamera, ContactShadows } from '@react-three/drei';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import scenarios from './data/scenarios.json';
@@ -187,17 +187,26 @@ export default function App() {
         {screen === '3d' && (
           <>
             <div className="canvas-wrap">
-              <Canvas shadows>
-                <ambientLight intensity={0.55} />
-                <directionalLight position={[8, 18, 6]} intensity={1.1} />
+              <Canvas shadows camera={{ position: [0, 6, 12], fov: 50 }}>
+                <color attach="background" args={['#87a0b5']} />
+                <ambientLight intensity={0.45} />
+                <directionalLight
+                  position={[12, 22, 8]}
+                  intensity={1.4}
+                  castShadow
+                  shadow-mapSize-width={2048}
+                  shadow-mapSize-height={2048}
+                />
+                <directionalLight position={[-8, 12, -6]} intensity={0.35} color="#a0c4ff" />
                 {cam === 'top' && <PerspectiveCamera makeDefault position={[0, 22, 0]} fov={45} />}
                 {cam === 'side' && <PerspectiveCamera makeDefault position={[14, 4, -2]} fov={45} />}
                 {cam === 'back' && <PerspectiveCamera makeDefault position={[0, 3.5, -16]} fov={50} />}
-                {cam === 'free' && <OrbitControls />}
+                {cam === 'free' && <OrbitControls enablePan={false} maxPolarAngle={Math.PI / 2.1} />}
                 <Court />
                 <Layers engine={ball} simTime={simTime} show={showLayers} />
                 <Ball engine={ball} simTime={simTime} />
                 <Player pos={playerPos} stance={(userStance || dec.recommended) as Stance} shot={sc.shot as any} handed={sc.handed as any} anim={anim} simTime={simTime} />
+                <ContactShadows position={[0, 0.01, 0]} opacity={0.4} scale={20} blur={2.5} far={8} />
               </Canvas>
               {showCompare && <CompareView studentScenario={{ ...sc, stance: userStance || 'neutral' }} recommendedScenario={{ ...sc, stance: dec.recommended }} />}
             </div>
