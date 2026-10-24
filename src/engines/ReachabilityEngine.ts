@@ -10,8 +10,8 @@ export class ReachabilityEngine {
     const timeNeeded = this.reaction + dist / this.maxSpeed;
     const ok = timeNeeded <= contactTime + 0.15;
     const reason = ok
-      ? `Reachable (${timeNeeded.toFixed(2)}s / ${contactTime.toFixed(2)}s)`
-      : `Too far (${timeNeeded.toFixed(2)}s needed, only ${contactTime.toFixed(2)}s)`;
+      ? `Успевает (${timeNeeded.toFixed(2)}с / ${contactTime.toFixed(2)}с)`
+      : `Слишком далеко (${timeNeeded.toFixed(2)}с нужно, есть только ${contactTime.toFixed(2)}с)`;
     return { ok, timeNeeded, reason };
   }
 
