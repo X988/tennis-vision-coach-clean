@@ -42,6 +42,23 @@ const stanceLabel: Record<Stance, string> = {
   open: T.open, 'semi-open': T.semiOpen, neutral: T.neutral, closed: T.closed,
 };
 
+function playHitSound() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(180, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(90, ctx.currentTime + 0.08);
+    gain.gain.setValueAtTime(0.35, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.12);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.13);
+  } catch {}
+}
+
 export default function App() {
   const [screen, setScreen] = useState<'home' | '3d' | 'video' | 'match' | 'live'>('home');
   const [scIdx, setScIdx] = useState(0);
@@ -69,6 +86,7 @@ export default function App() {
   const [voiceStatus, setVoiceStatus] = useState('');
   const recognitionRef = useRef<any>(null);
   const [showHelp, setShowHelp] = useState(true);
+  const lastContactPlayed = useRef(-1);
 
   const playerStart = new THREE.Vector3(0, 0, -10.8);
   const reachInfo = reach.canReach(sc.bounce, ball.getContactTime(), playerStart);
@@ -79,6 +97,7 @@ export default function App() {
     ball.updateParams({ bouncePoint: sc.bounce, speed: sc.speed, spin: sc.spin as any, bounceHeight: sc.height });
     anim.setContactTime(ball.getContactTime());
     setSimTime(0); anim.reset(); setUserStance(null); setShowHint(false);
+    lastContactPlayed.current = -1;
   }, [scIdx, customScenario]);
 
   useEffect(() => {
@@ -88,7 +107,18 @@ export default function App() {
   useEffect(() => {
     let id: number;
     const loop = () => {
-      if (playing) { setSimTime(s => s + 0.016 * speed); anim.update(0.016 * speed); }
+      if (playing) {
+        setSimTime(s => {
+          const next = s + 0.016 * speed;
+          const ct = ball.getContactTime();
+          if (lastContactPlayed.current < 0 && next >= ct && s < ct) {
+            playHitSound();
+            lastContactPlayed.current = ct;
+          }
+          return next;
+        });
+        anim.update(0.016 * speed);
+      }
       id = requestAnimationFrame(loop);
     };
     id = requestAnimationFrame(loop);
@@ -100,6 +130,7 @@ export default function App() {
   const reset = () => {
     setPlaying(false); setSimTime(0); anim.reset();
     setUserStance(null); setShowHint(false);
+    lastContactPlayed.current = -1;
     if (listening) { recognitionRef.current?.stop(); setListening(false); }
   };
 
