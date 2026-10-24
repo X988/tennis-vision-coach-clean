@@ -6,12 +6,20 @@ import { BallEngine } from '../engines/BallEngine';
 export function Ball({ engine, simTime }: { engine: BallEngine; simTime: number }) {
   const ref = useRef<THREE.Mesh>(null!);
   useFrame(() => {
-    ref.current.position.copy(engine.getPosition(simTime));
+    const pos = engine.getPosition(simTime);
+    ref.current.position.copy(pos);
+    // Slight spin visual
+    ref.current.rotation.x += 0.08;
+    ref.current.rotation.z += 0.05;
   });
   return (
-    <mesh ref={ref}>
-      <sphereGeometry args={[0.067, 16, 16]} />
-      <meshStandardMaterial color="#c8e600" />
+    <mesh ref={ref} castShadow>
+      <sphereGeometry args={[0.067, 24, 24]} />
+      <meshStandardMaterial
+        color="#d4e800"
+        roughness={0.45}
+        metalness={0.05}
+      />
     </mesh>
   );
 }
