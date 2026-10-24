@@ -1,7 +1,41 @@
-body { margin: 0; overflow: hidden; background: #0a0a0a; font-family: system-ui; }
-.controls { position: absolute; top: 10px; left: 10px; color: #eee; background: rgba(0,0,0,0.65); padding: 12px; border-radius: 8px; max-width: 340px; font-size: 13px; }
-.controls button, .controls select, .controls input { margin: 3px; }
-.panel { margin-top: 8px; padding-top: 8px; border-top: 1px solid #444; }
-.stance-btn { padding: 4px 8px; margin: 2px; }
-.correct { background: #2a7; color: #fff; }
-.wrong { background: #a33; color: #fff; }
+body { margin: 0; overflow: hidden; background: #0f1115; color: #eee; font-family: system-ui, -apple-system, sans-serif; }
+#root { height: 100vh; display: flex; flex-direction: column; }
+
+.canvas-wrap { flex: 1; position: relative; }
+canvas { width: 100% !important; height: 100% !important; }
+
+.header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; background: #1a1d23; border-bottom: 1px solid #2a2e36;
+  font-weight: 600; font-size: 16px;
+}
+.header button { background: none; border: none; color: #4ade80; font-size: 20px; cursor: pointer; }
+
+.bottom-nav {
+  display: flex; background: #1a1d23; border-top: 1px solid #2a2e36;
+  padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+}
+.bottom-nav button {
+  flex: 1; background: none; border: none; color: #888; padding: 8px 4px;
+  font-size: 12px; display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.bottom-nav button.active { color: #4ade80; }
+.bottom-nav button span:first-child { font-size: 20px; }
+
+.panel {
+  background: #1a1d23; border-radius: 12px; padding: 14px; margin: 10px;
+  border: 1px solid #2a2e36;
+}
+.panel h3 { margin: 0 0 10px; font-size: 15px; }
+
+.controls-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+button, select {
+  background: #2a2e36; color: #eee; border: 1px solid #3a3f48;
+  border-radius: 8px; padding: 8px 12px; font-size: 13px; cursor: pointer;
+}
+button:active { transform: scale(0.98); }
+button.primary { background: #245c45; border-color: #4a7c59; }
+button.correct { background: #166534; }
+button.wrong { background: #991b1b; }
+
+.screen { flex: 1; overflow-y: auto; padding-bottom: 80px; }
