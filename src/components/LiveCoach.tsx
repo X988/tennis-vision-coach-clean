@@ -102,10 +102,22 @@ export function LiveCoach({ onHint }: { onHint?: (msg: string) => void }) {
       setStatus('Ожидание MediaPipe...');
       return;
     }
+    setStatus('Запрос камеры...');
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: 640, height: 480 }
-      });
+      let stream: MediaStream | null = null;
+      // Try rear camera first, then front
+      const constraints = [
+        { video: { facingMode: { ideal: 'environment' }, width: { ideal: 640 }, height: { ideal: 480 } } },
+        { video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } },
+        { video: true }
+      ];
+      for (const c of constraints) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(c);
+          break;
+        } catch {}
+      }
+      if (!stream) throw new Error('No camera');
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
@@ -113,9 +125,11 @@ export function LiveCoach({ onHint }: { onHint?: (msg: string) => void }) {
       setActive(true);
       setStatus('Живой');
       rafRef.current = requestAnimationFrame(analyze);
-    } catch {
+    } catch (err: any) {
+      console.error(err);
+      const msg = err.name === 'NotAllowedError' ? 'Разрешите камеру в настройках телефона' : 'Камера недоступна';
       setStatus('Ошибка камеры');
-      alert('Камера недоступна');
+      alert(msg);
     }
   };
 
