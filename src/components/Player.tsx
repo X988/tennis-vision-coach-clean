@@ -22,6 +22,7 @@ export function Player({
   simTime: number;
 }) {
   const arm = useRef<THREE.Mesh>(null!);
+  const armOther = useRef<THREE.Mesh>(null!);
   const group = useRef<THREE.Group>(null!);
   const footL = useRef<THREE.Mesh>(null!);
   const footR = useRef<THREE.Mesh>(null!);
@@ -33,13 +34,25 @@ export function Player({
     if (group.current) group.current.position.copy(pos);
     const p = anim.progress();
     const swing = Math.sin(p * Math.PI * 2) * 1.4;
+    const prep = Math.sin(p * Math.PI) * 0.8;
 
+    // Racket arm
     if (arm.current) {
       arm.current.rotation.z = (isFH ? -1 : 1) * swing * side * 0.9;
       arm.current.rotation.y = swing * 0.6 * side;
+      arm.current.rotation.x = -prep * 0.4;
+      arm.current.position.y = 1.2 + Math.abs(swing) * 0.08;
     }
 
-    // Foot animation: step / weight transfer during swing
+    // Other arm (balance / two-handed)
+    if (armOther.current) {
+      const twoHand = shot === 'backhand' ? 1 : 0.3;
+      armOther.current.rotation.z = (isFH ? 1 : -1) * swing * side * 0.5 * twoHand;
+      armOther.current.rotation.y = -swing * 0.3 * side;
+      armOther.current.rotation.x = prep * 0.25;
+    }
+
+    // Foot animation
     const step = Math.sin(p * Math.PI * 2) * 0.12;
     const lift = Math.max(0, Math.sin(p * Math.PI * 2)) * 0.06;
 
@@ -63,7 +76,7 @@ export function Player({
         <sphereGeometry args={[0.18]} />
         <meshStandardMaterial color="#ffdbac" />
       </mesh>
-      {/* Animated feet */}
+      {/* Feet */}
       <mesh ref={footL} position={[fx1 * side, 0.05, fz1]}>
         <boxGeometry args={[0.18, 0.08, 0.3]} />
         <meshStandardMaterial color="#222" />
@@ -75,6 +88,11 @@ export function Player({
       {/* Racket arm */}
       <mesh ref={arm} position={[0.45 * side, 1.2, 0]}>
         <boxGeometry args={[0.08, 0.55, 0.08]} />
+        <meshStandardMaterial color="#333" />
+      </mesh>
+      {/* Other arm */}
+      <mesh ref={armOther} position={[-0.4 * side, 1.15, 0]}>
+        <boxGeometry args={[0.07, 0.5, 0.07]} />
         <meshStandardMaterial color="#333" />
       </mesh>
       <mesh position={[0.62 * side, 1.45, 0]}>
