@@ -7,6 +7,7 @@ import { BallEngine } from './engines/BallEngine';
 import { ReachabilityEngine } from './engines/ReachabilityEngine';
 import { DecisionEngine, Stance } from './engines/DecisionEngine';
 import { AnimationEngine } from './engines/AnimationEngine';
+import { FeedbackEngine } from './engines/FeedbackEngine';
 import { Court } from './components/Court';
 import { Ball } from './components/Ball';
 import { Player } from './components/Player';
@@ -15,6 +16,7 @@ import { VideoCoach } from './components/VideoCoach';
 import { MatchCoach } from './components/MatchCoach';
 import { LiveCoach } from './components/LiveCoach';
 import { CompareView } from './components/CompareView';
+import { FeedbackPanel } from './components/FeedbackPanel';
 import { saveAttempt, getStats } from './lib/storage';
 
 const STANCE_KEYWORDS: Record<string, Record<Stance, string[]>> = {
@@ -86,6 +88,7 @@ export default function App() {
   })).current;
   const reach = useMemo(() => new ReachabilityEngine(), []);
   const decision = useMemo(() => new DecisionEngine(), []);
+  const feedbackEngine = useMemo(() => new FeedbackEngine(), []);
   const anim = useRef(new AnimationEngine()).current;
 
   const [simTime, setSimTime] = useState(0);
@@ -110,6 +113,8 @@ export default function App() {
   const reachInfo = reach.canReach(sc.bounce, ball.getContactTime(), playerStart);
   const playerPos = reach.suggestPosition(sc.bounce, sc.handed as any, sc.shot as any);
   const dec = decision.decide(sc.bounce.x, sc.bounce.z, sc.speed, sc.spin, sc.height, sc.shot);
+  const currentStance = userStance || dec.recommended;
+  const feedback = feedbackEngine.analyze(sc, currentStance, reachInfo.ok);
 
   useEffect(() => {
     ball.updateParams({ bouncePoint: sc.bounce, speed: sc.speed, spin: sc.spin as any, bounceHeight: sc.height });
@@ -268,7 +273,7 @@ export default function App() {
                 <Court />
                 <Layers engine={ball} simTime={simTime} show={showLayers} />
                 <Ball engine={ball} simTime={simTime} />
-                <Player pos={playerPos} stance={(userStance || dec.recommended) as Stance} shot={sc.shot as any} handed={sc.handed as any} anim={anim} simTime={simTime} />
+                <Player pos={playerPos} stance={currentStance as Stance} shot={sc.shot as any} handed={sc.handed as any} anim={anim} simTime={simTime} />
                 <ContactShadows position={[0, 0.01, 0]} opacity={0.45} scale={22} blur={2.8} far={10} />
               </Canvas>
               {showCompare && <CompareView studentScenario={{ ...sc, stance: userStance || 'neutral' }} recommendedScenario={{ ...sc, stance: dec.recommended }} />}
@@ -342,12 +347,15 @@ export default function App() {
               )}
 
               {(showHint || mode === 'play' || mode === 'compare') && (
-                <div className="panel" style={{ margin: '6px 10px' }}>
-                  <b>{reachInfo.ok ? '✓' : '✗'} {reachInfo.reason}</b><br/>
-                  {T.recommended}: <b>{stanceLabel[dec.recommended as Stance]}</b><br/>
-                  {T.alt}: {dec.alternatives.map(a => stanceLabel[a as Stance] || a).join(', ')}<br/>
-                  {dec.explanation}
-                </div>
+                <>
+                  <div className="panel" style={{ margin: '6px 10px' }}>
+                    <b>{reachInfo.ok ? '✓' : '✗'} {reachInfo.reason}</b><br/>
+                    {T.recommended}: <b>{stanceLabel[dec.recommended as Stance]}</b><br/>
+                    {T.alt}: {dec.alternatives.map(a => stanceLabel[a as Stance] || a).join(', ')}<br/>
+                    {dec.explanation}
+                  </div>
+                  <FeedbackPanel fb={feedback} />
+                </>
               )}
             </div>
           </>
