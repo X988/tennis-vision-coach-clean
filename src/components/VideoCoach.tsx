@@ -1,6 +1,12 @@
 import { useState, useRef } from 'react';
 import { VideoProcessor, AnalysisResult } from '../engines/VideoProcessor';
 
+const QUALITY_RU: Record<string, string> = {
+  suitable: 'Подходит',
+  partial: 'Частично',
+  insufficient: 'Недостаточно данных',
+};
+
 export function VideoCoach({ onReplay }: { onReplay: (scenario: any) => void }) {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [mode, setMode] = useState<'video' | 'skeleton' | '3d' | 'compare'>('video');
@@ -33,7 +39,7 @@ export function VideoCoach({ onReplay }: { onReplay: (scenario: any) => void }) 
 
       {result && (
         <div style={{ marginTop: 12 }}>
-          Качество: <b>{result.quality}</b> — {result.reason}<br/>
+          Качество: <b>{QUALITY_RU[result.quality] || result.quality}</b> — {result.reason}<br/>
           {result.quality !== 'insufficient' && (
             <>
               <button disabled={!result.scenario} onClick={() => result.scenario && onReplay(result.scenario)} style={{ marginTop: 8 }}>
