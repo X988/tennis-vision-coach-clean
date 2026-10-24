@@ -126,7 +126,6 @@ export default function App() {
       const text = e.results[0][0].transcript.toLowerCase();
       setVoiceStatus(`Слышал: «${text}»`);
 
-      // Stance
       const map = STANCE_KEYWORDS[lang];
       for (const [st, words] of Object.entries(map)) {
         if (words.some(w => text.includes(w))) {
@@ -135,7 +134,6 @@ export default function App() {
         }
       }
 
-      // Commands
       if (text.includes('игра') || text.includes('старт') || text.includes('play')) {
         setPlaying(true);
         setVoiceStatus('Играть');
@@ -177,7 +175,7 @@ export default function App() {
   const goHome = () => setScreen('home');
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+    <div className="app">
       {screen !== 'home' && (
         <div className="header">
           <button onClick={goHome}>{T.backBtn}</button>
@@ -185,141 +183,147 @@ export default function App() {
         </div>
       )}
 
-      <div className="canvas-wrap" style={{ display: screen === '3d' ? 'block' : 'none' }}>
-        <Canvas shadows>
-          <ambientLight intensity={0.55} />
-          <directionalLight position={[8, 18, 6]} intensity={1.1} />
-          {cam === 'top' && <PerspectiveCamera makeDefault position={[0, 22, 0]} fov={45} />}
-          {cam === 'side' && <PerspectiveCamera makeDefault position={[14, 4, -2]} fov={45} />}
-          {cam === 'back' && <PerspectiveCamera makeDefault position={[0, 3.5, -16]} fov={50} />}
-          {cam === 'free' && <OrbitControls />}
-          <Court />
-          <Layers engine={ball} simTime={simTime} show={showLayers} />
-          <Ball engine={ball} simTime={simTime} />
-          <Player pos={playerPos} stance={(userStance || dec.recommended) as Stance} shot={sc.shot as any} handed={sc.handed as any} anim={anim} simTime={simTime} />
-        </Canvas>
-        {showCompare && <CompareView studentScenario={{ ...sc, stance: userStance || 'neutral' }} recommendedScenario={{ ...sc, stance: dec.recommended }} />}
-      </div>
+      <div className="main-content">
+        {screen === '3d' && (
+          <>
+            <div className="canvas-wrap">
+              <Canvas shadows>
+                <ambientLight intensity={0.55} />
+                <directionalLight position={[8, 18, 6]} intensity={1.1} />
+                {cam === 'top' && <PerspectiveCamera makeDefault position={[0, 22, 0]} fov={45} />}
+                {cam === 'side' && <PerspectiveCamera makeDefault position={[14, 4, -2]} fov={45} />}
+                {cam === 'back' && <PerspectiveCamera makeDefault position={[0, 3.5, -16]} fov={50} />}
+                {cam === 'free' && <OrbitControls />}
+                <Court />
+                <Layers engine={ball} simTime={simTime} show={showLayers} />
+                <Ball engine={ball} simTime={simTime} />
+                <Player pos={playerPos} stance={(userStance || dec.recommended) as Stance} shot={sc.shot as any} handed={sc.handed as any} anim={anim} simTime={simTime} />
+              </Canvas>
+              {showCompare && <CompareView studentScenario={{ ...sc, stance: userStance || 'neutral' }} recommendedScenario={{ ...sc, stance: dec.recommended }} />}
+            </div>
 
-      <div className="screen" style={{ display: screen === 'home' ? 'block' : 'none' }}>
-        <div className="panel">
-          <h3>{T.title}</h3>
-          <p style={{ color: '#aaa', margin: '8px 0 16px' }}>Выберите, что хотите тренировать</p>
-          <div className="controls-row" style={{ flexDirection: 'column', gap: 8 }}>
-            <button className="primary" onClick={() => setScreen('3d')} style={{ textAlign: 'left', padding: '12px 16px' }}>
-              <b>3D Тренер</b><br/><span style={{ fontSize: 12, opacity: 0.8 }}>Смотрите и тренируйте удары в 3D</span>
-            </button>
-            <button onClick={() => setScreen('video')} style={{ textAlign: 'left', padding: '12px 16px' }}>
-              <b>AI Видео</b><br/><span style={{ fontSize: 12, opacity: 0.8 }}>Загрузите короткое видео удара</span>
-            </button>
-            <button onClick={() => setScreen('match')} style={{ textAlign: 'left', padding: '12px 16px' }}>
-              <b>Полный матч</b><br/><span style={{ fontSize: 12, opacity: 0.8 }}>Анализ длинного видео матча</span>
-            </button>
-            <button onClick={() => setScreen('live')} style={{ textAlign: 'left', padding: '12px 16px' }}>
-              <b>Живой тренер</b><br/><span style={{ fontSize: 12, opacity: 0.8 }}>Камера подсказывает ошибки в реальном времени</span>
-            </button>
-          </div>
-          <div style={{ marginTop: 16, fontSize: 13, color: '#888' }}>
-            {T.progress}: {stats.correct}/{stats.total} {T.correct}
-          </div>
-        </div>
+            <div className="controls-panel">
+              <div className="hint" style={{ padding: '8px 12px', fontSize: 13, color: '#4ade80' }}>
+                1. Выберите сценарий → 2. Нажмите «Играть» → 3. Смотрите удар
+              </div>
 
-        {showHelp && (
-          <div className="panel" style={{ background: '#1e3a2f' }}>
-            <b>Как пользоваться</b>
-            <ol style={{ margin: '8px 0', paddingLeft: 18, fontSize: 13, lineHeight: 1.5 }}>
-              <li>Нажмите <b>3D Тренер</b></li>
-              <li>Выберите сценарий (какой мяч летит)</li>
-              <li>Нажмите <b>Играть</b> — смотрите удар</li>
-              <li>Меняйте камеру и режим</li>
-            </ol>
-            <button onClick={() => setShowHelp(false)} style={{ marginTop: 4 }}>Понятно</button>
-          </div>
+              <div className="controls-row" style={{ padding: '0 10px' }}>
+                <button className="primary" onClick={() => setPlaying(p => !p)}>{playing ? T.pause : T.play}</button>
+                <button onClick={() => setSimTime(t => t + 0.05)}>{T.step}</button>
+                <button onClick={reset}>{T.reset}</button>
+                <select value={speed} onChange={e => setSpeed(+e.target.value)} title="Скорость">
+                  <option value={0.25}>0.25x</option>
+                  <option value={1}>1x</option>
+                </select>
+                <button onClick={listening ? () => { recognitionRef.current?.stop(); setListening(false); } : startListening}>
+                  {listening ? '🔴 Стоп' : '🎙 Голос'}
+                </button>
+              </div>
+
+              {voiceStatus && (
+                <div style={{ padding: '0 12px 6px', fontSize: 12, color: '#a0e0a0' }}>{voiceStatus}</div>
+              )}
+
+              <div className="controls-row" style={{ padding: '0 10px' }}>
+                <button onClick={() => setShowLayers(s => !s)}>{showLayers ? T.hideLayers : T.showLayers}</button>
+                <button onClick={() => setShowCompare(s => !s)}>{showCompare ? T.single : T.compare}</button>
+              </div>
+
+              <div className="controls-row" style={{ padding: '0 10px' }}>
+                <span style={{ fontSize: 13, alignSelf: 'center' }}>{T.cam}:</span>
+                <button onClick={() => setCam('top')}>{T.top}</button>
+                <button onClick={() => setCam('side')}>{T.side}</button>
+                <button onClick={() => setCam('back')}>{T.backCam}</button>
+                <button onClick={() => setCam('free')}>{T.free}</button>
+              </div>
+
+              <div className="panel" style={{ margin: '6px 10px' }}>
+                <div style={{ fontSize: 13, marginBottom: 6 }}>{T.scenario}:</div>
+                {customScenario ? <b>{customScenario.name}</b> : (
+                  <select value={scIdx} onChange={e => { setCustomScenario(null); setScIdx(+e.target.value); }} style={{ width: '100%' }}>
+                    {scenarios.map((s, i) => <option key={s.id} value={i}>{s.name}</option>)}
+                  </select>
+                )}
+                {customScenario && <button onClick={() => setCustomScenario(null)} style={{ marginTop: 6 }}>{T.library}</button>}
+              </div>
+
+              <div className="panel" style={{ margin: '6px 10px' }}>
+                <div style={{ fontSize: 13, marginBottom: 6 }}>{T.mode}:</div>
+                <select value={mode} onChange={e => setMode(e.target.value as any)} style={{ width: '100%', marginBottom: 6 }}>
+                  <option value="play">{T.playMode} — просто смотреть</option>
+                  <option value="decide">{T.decide} — сначала выбери стойку</option>
+                  <option value="compare">{T.compare} — сравни с правильным</option>
+                </select>
+              </div>
+
+              {(mode === 'decide' || mode === 'compare') && (
+                <div className="panel" style={{ margin: '6px 10px' }}>
+                  {T.chooseStance}:
+                  <div className="controls-row" style={{ marginTop: 6 }}>
+                    {(['open','semi-open','neutral','closed'] as Stance[]).map(st => (
+                      <button key={st} className={userStance === st ? (userStance === dec.recommended ? 'correct' : 'wrong') : ''} onClick={() => onStancePick(st)}>
+                        {stanceLabel[st]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(showHint || mode === 'play' || mode === 'compare') && (
+                <div className="panel" style={{ margin: '6px 10px' }}>
+                  <b>{reachInfo.ok ? '✓' : '✗'} {reachInfo.reason}</b><br/>
+                  {T.recommended}: <b>{stanceLabel[dec.recommended as Stance]}</b><br/>
+                  {T.alt}: {dec.alternatives.map(a => stanceLabel[a as Stance] || a).join(', ')}<br/>
+                  {dec.explanation}
+                </div>
+              )}
+            </div>
+          </>
         )}
-      </div>
 
-      {screen === 'video' && <div className="screen"><VideoCoach onReplay={onReplay} /></div>}
-      {screen === 'match' && <div className="screen"><MatchCoach onReplay={onReplay} /></div>}
-      {screen === 'live' && <div className="screen"><LiveCoach /></div>}
-
-      {screen === '3d' && (
-        <div style={{ position: 'absolute', bottom: 70, left: 0, right: 0, maxHeight: '50%', overflowY: 'auto', background: 'rgba(15,17,21,0.95)', padding: '8px 0' }}>
-          <div className="hint" style={{ padding: '0 12px 8px', fontSize: 13, color: '#4ade80' }}>
-            1. Выберите сценарий → 2. Нажмите «Играть» → 3. Смотрите удар
-          </div>
-
-          <div className="controls-row" style={{ padding: '0 10px' }}>
-            <button className="primary" onClick={() => setPlaying(p => !p)}>{playing ? T.pause : T.play}</button>
-            <button onClick={() => setSimTime(t => t + 0.05)}>{T.step}</button>
-            <button onClick={reset}>{T.reset}</button>
-            <select value={speed} onChange={e => setSpeed(+e.target.value)} title="Скорость">
-              <option value={0.25}>0.25x</option>
-              <option value={1}>1x</option>
-            </select>
-            <button onClick={listening ? () => { recognitionRef.current?.stop(); setListening(false); } : startListening}>
-              {listening ? '🔴 Стоп' : '🎙 Голос'}
-            </button>
-          </div>
-
-          {voiceStatus && (
-            <div style={{ padding: '0 12px 6px', fontSize: 12, color: '#a0e0a0' }}>{voiceStatus}</div>
-          )}
-
-          <div className="controls-row" style={{ padding: '0 10px' }}>
-            <button onClick={() => setShowLayers(s => !s)}>{showLayers ? T.hideLayers : T.showLayers}</button>
-            <button onClick={() => setShowCompare(s => !s)}>{showCompare ? T.single : T.compare}</button>
-          </div>
-
-          <div className="controls-row" style={{ padding: '0 10px' }}>
-            <span style={{ fontSize: 13, alignSelf: 'center' }}>{T.cam}:</span>
-            <button onClick={() => setCam('top')}>{T.top}</button>
-            <button onClick={() => setCam('side')}>{T.side}</button>
-            <button onClick={() => setCam('back')}>{T.backCam}</button>
-            <button onClick={() => setCam('free')}>{T.free}</button>
-          </div>
-
-          <div className="panel" style={{ margin: '6px 10px' }}>
-            <div style={{ fontSize: 13, marginBottom: 6 }}>{T.scenario}:</div>
-            {customScenario ? <b>{customScenario.name}</b> : (
-              <select value={scIdx} onChange={e => { setCustomScenario(null); setScIdx(+e.target.value); }} style={{ width: '100%' }}>
-                {scenarios.map((s, i) => <option key={s.id} value={i}>{s.name}</option>)}
-              </select>
-            )}
-            {customScenario && <button onClick={() => setCustomScenario(null)} style={{ marginTop: 6 }}>{T.library}</button>}
-          </div>
-
-          <div className="panel" style={{ margin: '6px 10px' }}>
-            <div style={{ fontSize: 13, marginBottom: 6 }}>{T.mode}:</div>
-            <select value={mode} onChange={e => setMode(e.target.value as any)} style={{ width: '100%', marginBottom: 6 }}>
-              <option value="play">{T.playMode} — просто смотреть</option>
-              <option value="decide">{T.decide} — сначала выбери стойку</option>
-              <option value="compare">{T.compare} — сравни с правильным</option>
-            </select>
-          </div>
-
-          {(mode === 'decide' || mode === 'compare') && (
-            <div className="panel" style={{ margin: '6px 10px' }}>
-              {T.chooseStance}:
-              <div className="controls-row" style={{ marginTop: 6 }}>
-                {(['open','semi-open','neutral','closed'] as Stance[]).map(st => (
-                  <button key={st} className={userStance === st ? (userStance === dec.recommended ? 'correct' : 'wrong') : ''} onClick={() => onStancePick(st)}>
-                    {stanceLabel[st]}
-                  </button>
-                ))}
+        {screen === 'home' && (
+          <div className="screen">
+            <div className="panel">
+              <h3>{T.title}</h3>
+              <p style={{ color: '#aaa', margin: '8px 0 16px' }}>Выберите, что хотите тренировать</p>
+              <div className="controls-row" style={{ flexDirection: 'column', gap: 8 }}>
+                <button className="primary" onClick={() => setScreen('3d')} style={{ textAlign: 'left', padding: '12px 16px' }}>
+                  <b>3D Тренер</b><br/><span style={{ fontSize: 12, opacity: 0.8 }}>Смотрите и тренируйте удары в 3D</span>
+                </button>
+                <button onClick={() => setScreen('video')} style={{ textAlign: 'left', padding: '12px 16px' }}>
+                  <b>AI Видео</b><br/><span style={{ fontSize: 12, opacity: 0.8 }}>Загрузите короткое видео удара</span>
+                </button>
+                <button onClick={() => setScreen('match')} style={{ textAlign: 'left', padding: '12px 16px' }}>
+                  <b>Полный матч</b><br/><span style={{ fontSize: 12, opacity: 0.8 }}>Анализ длинного видео матча</span>
+                </button>
+                <button onClick={() => setScreen('live')} style={{ textAlign: 'left', padding: '12px 16px' }}>
+                  <b>Живой тренер</b><br/><span style={{ fontSize: 12, opacity: 0.8 }}>Камера подсказывает ошибки в реальном времени</span>
+                </button>
+              </div>
+              <div style={{ marginTop: 16, fontSize: 13, color: '#888' }}>
+                {T.progress}: {stats.correct}/{stats.total} {T.correct}
               </div>
             </div>
-          )}
 
-          {(showHint || mode === 'play' || mode === 'compare') && (
-            <div className="panel" style={{ margin: '6px 10px' }}>
-              <b>{reachInfo.ok ? '✓' : '✗'} {reachInfo.reason}</b><br/>
-              {T.recommended}: <b>{stanceLabel[dec.recommended as Stance]}</b><br/>
-              {T.alt}: {dec.alternatives.map(a => stanceLabel[a as Stance] || a).join(', ')}<br/>
-              {dec.explanation}
-            </div>
-          )}
-        </div>
-      )}
+            {showHelp && (
+              <div className="panel" style={{ background: '#1e3a2f' }}>
+                <b>Как пользоваться</b>
+                <ol style={{ margin: '8px 0', paddingLeft: 18, fontSize: 13, lineHeight: 1.5 }}>
+                  <li>Нажмите <b>3D Тренер</b></li>
+                  <li>Выберите сценарий (какой мяч летит)</li>
+                  <li>Нажмите <b>Играть</b> — смотрите удар</li>
+                  <li>Меняйте камеру и режим</li>
+                </ol>
+                <button onClick={() => setShowHelp(false)} style={{ marginTop: 4 }}>Понятно</button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {screen === 'video' && <div className="screen"><VideoCoach onReplay={onReplay} /></div>}
+        {screen === 'match' && <div className="screen"><MatchCoach onReplay={onReplay} /></div>}
+        {screen === 'live' && <div className="screen"><LiveCoach /></div>}
+      </div>
 
       <div className="bottom-nav">
         <button className={screen === 'home' ? 'active' : ''} onClick={() => setScreen('home')}>
