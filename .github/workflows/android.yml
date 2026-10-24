@@ -54,6 +54,7 @@ jobs:
       - name: Build debug APK
         working-directory: android
         run: |
+          unset ANDROID_SDK_ROOT
           export ANDROID_HOME=$HOME/android-sdk
           ./gradlew assembleDebug
 
