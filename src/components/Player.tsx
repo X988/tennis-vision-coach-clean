@@ -24,6 +24,8 @@ export function Player({
   const arm = useRef<THREE.Mesh>(null!);
   const armOther = useRef<THREE.Mesh>(null!);
   const wrist = useRef<THREE.Mesh>(null!);
+  const torso = useRef<THREE.Mesh>(null!);
+  const hips = useRef<THREE.Mesh>(null!);
   const group = useRef<THREE.Group>(null!);
   const footL = useRef<THREE.Mesh>(null!);
   const footR = useRef<THREE.Mesh>(null!);
@@ -36,10 +38,14 @@ export function Player({
     const p = anim.progress();
     const swing = Math.sin(p * Math.PI * 2) * 1.4;
     const prep = Math.sin(p * Math.PI) * 0.8;
-    // Wrist lag then snap (typical tennis contact timing)
     const wristSnap = Math.sin((p - 0.15) * Math.PI * 2.2) * 0.9;
+    // Kinetic chain: hips lead, then torso
+    const hipRot = Math.sin((p - 0.08) * Math.PI * 2) * 0.55 * side;
+    const torsoRot = Math.sin(p * Math.PI * 2) * 0.7 * side;
 
-    // Racket arm
+    if (hips.current) hips.current.rotation.y = hipRot;
+    if (torso.current) torso.current.rotation.y = torsoRot;
+
     if (arm.current) {
       arm.current.rotation.z = (isFH ? -1 : 1) * swing * side * 0.9;
       arm.current.rotation.y = swing * 0.6 * side;
@@ -47,14 +53,12 @@ export function Player({
       arm.current.position.y = 1.2 + Math.abs(swing) * 0.08;
     }
 
-    // Wrist
     if (wrist.current) {
       wrist.current.rotation.z = (isFH ? -1 : 1) * wristSnap * side * 1.1;
       wrist.current.rotation.x = wristSnap * 0.4;
       wrist.current.rotation.y = swing * 0.3 * side;
     }
 
-    // Other arm
     if (armOther.current) {
       const twoHand = shot === 'backhand' ? 1 : 0.3;
       armOther.current.rotation.z = (isFH ? 1 : -1) * swing * side * 0.5 * twoHand;
@@ -62,7 +66,6 @@ export function Player({
       armOther.current.rotation.x = prep * 0.25;
     }
 
-    // Feet
     const step = Math.sin(p * Math.PI * 2) * 0.12;
     const lift = Math.max(0, Math.sin(p * Math.PI * 2)) * 0.06;
 
@@ -78,8 +81,14 @@ export function Player({
 
   return (
     <group ref={group}>
-      <mesh position={[0, 1, 0]}>
-        <capsuleGeometry args={[0.28, 0.9, 4, 8]} />
+      {/* Hips */}
+      <mesh ref={hips} position={[0, 0.55, 0]}>
+        <boxGeometry args={[0.32, 0.18, 0.22]} />
+        <meshStandardMaterial color="#2a5a9a" />
+      </mesh>
+      {/* Torso */}
+      <mesh ref={torso} position={[0, 1.05, 0]}>
+        <capsuleGeometry args={[0.26, 0.55, 4, 8]} />
         <meshStandardMaterial color="#4a90d9" />
       </mesh>
       <mesh position={[0, 1.75, 0]}>
@@ -94,17 +103,14 @@ export function Player({
         <boxGeometry args={[0.18, 0.08, 0.3]} />
         <meshStandardMaterial color="#222" />
       </mesh>
-      {/* Racket arm */}
       <mesh ref={arm} position={[0.45 * side, 1.2, 0]}>
         <boxGeometry args={[0.08, 0.55, 0.08]} />
         <meshStandardMaterial color="#333" />
       </mesh>
-      {/* Wrist */}
       <mesh ref={wrist} position={[0.52 * side, 1.48, 0]}>
         <boxGeometry args={[0.06, 0.12, 0.06]} />
         <meshStandardMaterial color="#ffdbac" />
       </mesh>
-      {/* Other arm */}
       <mesh ref={armOther} position={[-0.4 * side, 1.15, 0]}>
         <boxGeometry args={[0.07, 0.5, 0.07]} />
         <meshStandardMaterial color="#333" />
