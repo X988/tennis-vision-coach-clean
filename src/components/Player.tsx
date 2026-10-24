@@ -29,10 +29,11 @@ export function Player({
   const group = useRef<THREE.Group>(null!);
   const footL = useRef<THREE.Mesh>(null!);
   const footR = useRef<THREE.Mesh>(null!);
-  const vel = useRef({ hip: 0, torso: 0, arm: 0, wrist: 0 });
+  const vel = useRef({ hip: 0, torso: 0, arm: 0, wrist: 0, armY: 0 });
   const [fx1, fz1, fx2, fz2] = footOffsets[stance];
   const side = handed === 'right' ? 1 : -1;
   const isFH = (shot === 'forehand') === (handed === 'right');
+  const g = 9.8;
 
   useFrame((_, delta) => {
     if (group.current) group.current.position.copy(pos);
@@ -46,13 +47,12 @@ export function Player({
     const wristT = Math.max(0, (p - 0.58) / 0.42);
     const targetWrist = Math.sin(wristT * Math.PI) * 1.15;
 
-    // Target rotations (kinetic chain + SSC)
     const targetHip = (-coil * 0.45 + release * 0.7) * side;
     const targetTorso = (-coil * 0.7 + release * 0.85) * side;
     const targetArmZ = (isFH ? -1 : 1) * release * 1.35 * side * 0.92;
     const targetWristZ = (isFH ? -1 : 1) * targetWrist * side * 1.1;
+    const targetArmY = 1.18 + release * 0.09;
 
-    // Simple inertia (spring-damper toward target)
     const k = 18;
     const damp = 6;
     const update = (current: number, target: number, v: number) => {
@@ -73,13 +73,20 @@ export function Player({
       vel.current.torso = v;
     }
     if (arm.current) {
-      const [r, v] = update(arm.current.rotation.z, targetArmZ, vel.current.arm);
-      arm.current.rotation.z = r;
+      const [rz, vz] = update(arm.current.rotation.z, targetArmZ, vel.current.arm);
+      arm.current.rotation.z = rz;
+      vel.current.arm = vz;
+
+      // Gravity on arm vertical position
+      const [py, vy] = update(arm.current.position.y, targetArmY, vel.current.armY);
+      const gravForce = -g * 0.15 * (1 - release); // gravity pulls down more during coil
+      const nvy = vy + gravForce * dt;
+      arm.current.position.y = Math.max(1.05, py + nvy * dt);
+      vel.current.armY = nvy;
+
       arm.current.rotation.y = (release - coil * 0.25) * side * 0.65;
       arm.current.rotation.x = -coil * 0.45 + release * 0.12;
-      arm.current.position.y = 1.18 + release * 0.09;
       arm.current.position.z = release * 0.12 * side;
-      vel.current.arm = v;
     }
     if (wrist.current) {
       const [r, v] = update(wrist.current.rotation.z, targetWristZ, vel.current.wrist);
