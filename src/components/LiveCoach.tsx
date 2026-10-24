@@ -55,13 +55,12 @@ export function LiveCoach({ onHint }: { onHint?: (msg: string) => void }) {
 
     if (results.landmarks && results.landmarks[0]) {
       const landmarks = results.landmarks[0];
-      // Draw skeleton
       ctx.strokeStyle = '#00ff88';
       ctx.lineWidth = 2;
       const connections = PoseLandmarker.POSE_CONNECTIONS;
-      for (const [a, b] of connections) {
-        const pa = landmarks[a];
-        const pb = landmarks[b];
+      for (const conn of connections) {
+        const pa = landmarks[conn.start];
+        const pb = landmarks[conn.end];
         if (pa && pb && (pa.visibility ?? 1) > 0.5 && (pb.visibility ?? 1) > 0.5) {
           ctx.beginPath();
           ctx.moveTo(pa.x * canvas.width, pa.y * canvas.height);
@@ -70,7 +69,6 @@ export function LiveCoach({ onHint }: { onHint?: (msg: string) => void }) {
         }
       }
 
-      // Simple coaching logic
       const leftShoulder = landmarks[11];
       const rightShoulder = landmarks[12];
       const leftHip = landmarks[23];
