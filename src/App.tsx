@@ -10,6 +10,7 @@ import { AnimationEngine } from './engines/AnimationEngine';
 import { Court } from './components/Court';
 import { Ball } from './components/Ball';
 import { Player } from './components/Player';
+import { Layers } from './components/Layers';
 import { VideoCoach } from './components/VideoCoach';
 import { MatchCoach } from './components/MatchCoach';
 import { saveAttempt, getStats } from './lib/storage';
@@ -44,6 +45,7 @@ export default function App() {
   const [cam, setCam] = useState<'top'|'side'|'back'|'free'>('free');
   const [mode, setMode] = useState<'play'|'decide'|'compare'>('play');
   const [tab, setTab] = useState<'3d'|'video'|'match'>('3d');
+  const [showLayers, setShowLayers] = useState(true);
   const [userStance, setUserStance] = useState<Stance | null>(null);
   const [showHint, setShowHint] = useState(false);
   const [stats, setStats] = useState({ total: 0, correct: 0 });
@@ -144,6 +146,7 @@ export default function App() {
         {cam === 'back' && <PerspectiveCamera makeDefault position={[0, 3.5, -16]} fov={50} />}
         {cam === 'free' && <OrbitControls />}
         <Court />
+        <Layers engine={ball} simTime={simTime} show={showLayers} />
         <Ball engine={ball} simTime={simTime} />
         <Player pos={playerPos} stance={(userStance || dec.recommended) as Stance} shot={sc.shot as any} handed={sc.handed as any} anim={anim} simTime={simTime} />
       </Canvas>
@@ -165,6 +168,7 @@ export default function App() {
                 <option value={0.25}>0.25x</option>
                 <option value={1}>1x</option>
               </select>
+              <button onClick={() => setShowLayers(s => !s)}>{showLayers ? 'Hide layers' : 'Show layers'}</button>
             </div>
             <div>
               Cam: <button onClick={() => setCam('top')}>Top</button>
