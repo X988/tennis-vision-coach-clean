@@ -119,71 +119,82 @@ export function Player({
   return (
     <group ref={group}>
       {/* Legs */}
-      <mesh position={[fx1 * side * 0.5, 0.32, fz1 * 0.5]}>
-        <capsuleGeometry args={[0.09, 0.48, 4, 8]} />
-        <meshStandardMaterial color="#555" />
+      <mesh position={[fx1 * side * 0.5, 0.32, fz1 * 0.5]} castShadow>
+        <capsuleGeometry args={[0.09, 0.48, 6, 10]} />
+        <meshStandardMaterial color="#3a3a3a" roughness={0.7} />
       </mesh>
-      <mesh position={[fx2 * side * 0.5, 0.32, fz2 * 0.5]}>
-        <capsuleGeometry args={[0.09, 0.48, 4, 8]} />
-        <meshStandardMaterial color="#555" />
-      </mesh>
-
-      {/* Hips */}
-      <mesh ref={hips} position={[0, 0.58, 0]}>
-        <boxGeometry args={[0.38, 0.22, 0.26]} />
-        <meshStandardMaterial color="#e8e8e8" />
+      <mesh position={[fx2 * side * 0.5, 0.32, fz2 * 0.5]} castShadow>
+        <capsuleGeometry args={[0.09, 0.48, 6, 10]} />
+        <meshStandardMaterial color="#3a3a3a" roughness={0.7} />
       </mesh>
 
-      {/* Torso */}
-      <mesh ref={torso} position={[0, 1.15, 0]}>
-        <capsuleGeometry args={[0.26, 0.58, 6, 10]} />
-        <meshStandardMaterial color="#ff4d2e" />
+      {/* Hips / shorts */}
+      <mesh ref={hips} position={[0, 0.58, 0]} castShadow>
+        <boxGeometry args={[0.40, 0.24, 0.28]} />
+        <meshStandardMaterial color="#1e3a5f" roughness={0.6} />
+      </mesh>
+
+      {/* Torso / shirt */}
+      <mesh ref={torso} position={[0, 1.15, 0]} castShadow>
+        <capsuleGeometry args={[0.27, 0.56, 8, 12]} />
+        <meshStandardMaterial color="#e85d04" roughness={0.55} />
       </mesh>
 
       {/* Head */}
-      <mesh position={[0, 1.82, 0.02]}>
-        <sphereGeometry args={[0.17, 16, 16]} />
-        <meshStandardMaterial color="#ffdbac" />
+      <mesh position={[0, 1.82, 0.02]} castShadow>
+        <sphereGeometry args={[0.175, 20, 20]} />
+        <meshStandardMaterial color="#f5d0a9" roughness={0.6} />
       </mesh>
       {/* Cap */}
-      <mesh position={[0, 1.96, 0.02]} rotation={[0.15, 0, 0]}>
-        <cylinderGeometry args={[0.16, 0.18, 0.08, 16]} />
-        <meshStandardMaterial color="#f0f0f0" />
+      <mesh position={[0, 1.97, 0.04]} rotation={[0.2, 0, 0]} castShadow>
+        <cylinderGeometry args={[0.17, 0.19, 0.09, 16]} />
+        <meshStandardMaterial color="#f8f8f8" roughness={0.4} />
+      </mesh>
+      <mesh position={[0, 1.96, 0.18]} rotation={[0.4, 0, 0]}>
+        <boxGeometry args={[0.22, 0.02, 0.14]} />
+        <meshStandardMaterial color="#f8f8f8" />
       </mesh>
 
       {/* Feet */}
-      <mesh ref={footL} position={[fx1 * side, 0.05, fz1]}>
-        <boxGeometry args={[0.22, 0.08, 0.34]} />
-        <meshStandardMaterial color="#111" />
+      <mesh ref={footL} position={[fx1 * side, 0.05, fz1]} castShadow>
+        <boxGeometry args={[0.23, 0.09, 0.36]} />
+        <meshStandardMaterial color="#111" roughness={0.8} />
       </mesh>
-      <mesh ref={footR} position={[fx2 * side, 0.05, fz2]}>
-        <boxGeometry args={[0.22, 0.08, 0.34]} />
-        <meshStandardMaterial color="#111" />
+      <mesh ref={footR} position={[fx2 * side, 0.05, fz2]} castShadow>
+        <boxGeometry args={[0.23, 0.09, 0.36]} />
+        <meshStandardMaterial color="#111" roughness={0.8} />
       </mesh>
 
-      {/* Main arm + racket */}
-      <mesh ref={arm} position={[0.4 * side, 1.2, 0]}>
-        <capsuleGeometry args={[0.055, 0.48, 4, 8]} />
-        <meshStandardMaterial color="#ddd" />
+      {/* Main arm */}
+      <mesh ref={arm} position={[0.4 * side, 1.2, 0]} castShadow>
+        <capsuleGeometry args={[0.055, 0.50, 6, 10]} />
+        <meshStandardMaterial color="#f5d0a9" roughness={0.6} />
       </mesh>
       <mesh ref={wrist} position={[0.52 * side, 1.48, 0]}>
-        <boxGeometry args={[0.08, 0.12, 0.08]} />
-        <meshStandardMaterial color="#ffdbac" />
-      </mesh>
-      {/* Racket */}
-      <mesh position={[0.68 * side, 1.42, 0.02]} rotation={[0, 0, 0.2 * side]}>
-        <torusGeometry args={[0.16, 0.018, 8, 20]} />
-        <meshStandardMaterial color="#333" />
-      </mesh>
-      <mesh position={[0.68 * side, 1.42, 0.02]}>
-        <boxGeometry args={[0.22, 0.22, 0.01]} />
-        <meshStandardMaterial color="#4a90d9" transparent opacity={0.6} />
+        <boxGeometry args={[0.09, 0.13, 0.09]} />
+        <meshStandardMaterial color="#f5d0a9" roughness={0.55} />
       </mesh>
 
+      {/* Racket */}
+      <group position={[0.68 * side, 1.42, 0.02]} rotation={[0, 0, 0.15 * side]}>
+        <mesh castShadow>
+          <torusGeometry args={[0.165, 0.016, 8, 24]} />
+          <meshStandardMaterial color="#2c2c2c" metalness={0.2} roughness={0.4} />
+        </mesh>
+        <mesh>
+          <boxGeometry args={[0.24, 0.24, 0.008]} />
+          <meshStandardMaterial color="#4a90d9" transparent opacity={0.55} roughness={0.3} />
+        </mesh>
+        <mesh position={[0, -0.28, 0]}>
+          <cylinderGeometry args={[0.018, 0.022, 0.32, 8]} />
+          <meshStandardMaterial color="#444" />
+        </mesh>
+      </group>
+
       {/* Other arm */}
-      <mesh ref={armOther} position={[-0.36 * side, 1.18, 0]}>
-        <capsuleGeometry args={[0.05, 0.44, 4, 8]} />
-        <meshStandardMaterial color="#ddd" />
+      <mesh ref={armOther} position={[-0.36 * side, 1.18, 0]} castShadow>
+        <capsuleGeometry args={[0.05, 0.46, 6, 10]} />
+        <meshStandardMaterial color="#f5d0a9" roughness={0.6} />
       </mesh>
     </group>
   );
