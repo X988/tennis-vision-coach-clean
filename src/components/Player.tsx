@@ -29,44 +29,64 @@ export function Player({
   const group = useRef<THREE.Group>(null!);
   const footL = useRef<THREE.Mesh>(null!);
   const footR = useRef<THREE.Mesh>(null!);
+  const vel = useRef({ hip: 0, torso: 0, arm: 0, wrist: 0 });
   const [fx1, fz1, fx2, fz2] = footOffsets[stance];
   const side = handed === 'right' ? 1 : -1;
   const isFH = (shot === 'forehand') === (handed === 'right');
 
-  useFrame(() => {
+  useFrame((_, delta) => {
     if (group.current) group.current.position.copy(pos);
     const p = Math.min(1, Math.max(0, anim.progress()));
+    const dt = Math.min(delta, 0.05);
 
-    // Smooth SSC phases
     const coilT = Math.min(1, p / 0.32);
     const coil = Math.sin(coilT * Math.PI * 0.5) * 0.65;
     const relT = Math.max(0, (p - 0.28) / 0.72);
     const release = Math.sin(relT * Math.PI * 0.5);
     const wristT = Math.max(0, (p - 0.58) / 0.42);
-    const wristSnap = Math.sin(wristT * Math.PI) * 1.15;
+    const targetWrist = Math.sin(wristT * Math.PI) * 1.15;
 
-    const hipRot = (-coil * 0.45 + release * 0.7) * side;
-    const torsoRot = (-coil * 0.7 + release * 0.85) * side;
+    // Target rotations (kinetic chain + SSC)
+    const targetHip = (-coil * 0.45 + release * 0.7) * side;
+    const targetTorso = (-coil * 0.7 + release * 0.85) * side;
+    const targetArmZ = (isFH ? -1 : 1) * release * 1.35 * side * 0.92;
+    const targetWristZ = (isFH ? -1 : 1) * targetWrist * side * 1.1;
 
-    if (hips.current) hips.current.rotation.y = hipRot;
-    if (torso.current) {
-      torso.current.rotation.y = torsoRot;
-      torso.current.rotation.z = release * 0.08 * side;
+    // Simple inertia (spring-damper toward target)
+    const k = 18;
+    const damp = 6;
+    const update = (current: number, target: number, v: number) => {
+      const force = (target - current) * k - v * damp;
+      const nv = v + force * dt;
+      return [current + nv * dt, nv] as const;
+    };
+
+    if (hips.current) {
+      const [r, v] = update(hips.current.rotation.y, targetHip, vel.current.hip);
+      hips.current.rotation.y = r;
+      vel.current.hip = v;
     }
-
+    if (torso.current) {
+      const [r, v] = update(torso.current.rotation.y, targetTorso, vel.current.torso);
+      torso.current.rotation.y = r;
+      torso.current.rotation.z = release * 0.08 * side;
+      vel.current.torso = v;
+    }
     if (arm.current) {
-      const armSwing = release * 1.35;
-      arm.current.rotation.z = (isFH ? -1 : 1) * armSwing * side * 0.92;
-      arm.current.rotation.y = (armSwing - coil * 0.25) * side * 0.65;
+      const [r, v] = update(arm.current.rotation.z, targetArmZ, vel.current.arm);
+      arm.current.rotation.z = r;
+      arm.current.rotation.y = (release - coil * 0.25) * side * 0.65;
       arm.current.rotation.x = -coil * 0.45 + release * 0.12;
       arm.current.position.y = 1.18 + release * 0.09;
       arm.current.position.z = release * 0.12 * side;
+      vel.current.arm = v;
     }
-
     if (wrist.current) {
-      wrist.current.rotation.z = (isFH ? -1 : 1) * wristSnap * side * 1.1;
-      wrist.current.rotation.x = wristSnap * 0.42;
+      const [r, v] = update(wrist.current.rotation.z, targetWristZ, vel.current.wrist);
+      wrist.current.rotation.z = r;
+      wrist.current.rotation.x = targetWrist * 0.42;
       wrist.current.rotation.y = release * 0.3 * side;
+      vel.current.wrist = v;
     }
 
     if (armOther.current) {
