@@ -8,11 +8,11 @@ export function Editor({ userRole, onCreated }: { userRole: string; onCreated?: 
     hint: '', status: 'draft'
   });
 
-  if (!['coach','admin'].includes(userRole)) return <div className="panel">Editor: coach/admin only</div>;
+  if (!['coach','admin'].includes(userRole)) return <div className="panel">Редактор: только для тренера / администратора</div>;
 
   const save = async () => {
     const data = {
-      name: form.name || 'New scenario',
+      name: form.name || 'Новый сценарий',
       bounce: { x: +form.bounceX, z: +form.bounceZ },
       speed: +form.speed, spin: form.spin, height: +form.height,
       shot: form.shot, handed: form.handed,
@@ -20,31 +20,38 @@ export function Editor({ userRole, onCreated }: { userRole: string; onCreated?: 
     };
     await api.createScenario(data);
     onCreated?.();
-    alert('Saved as draft');
+    alert('Сохранено как черновик');
   };
 
   return (
     <div className="panel">
-      <b>Coach Editor</b><br/>
-      Name: <input value={form.name} onChange={e => setForm({...form, name: e.target.value})} /><br/>
-      Bounce X/Z: <input type="number" step="0.1" value={form.bounceX} onChange={e => setForm({...form, bounceX: +e.target.value})} />
+      <b>Редактор тренера</b><br/>
+      Название: <input value={form.name} onChange={e => setForm({...form, name: e.target.value})} /><br/>
+      Отскок X/Z: <input type="number" step="0.1" value={form.bounceX} onChange={e => setForm({...form, bounceX: +e.target.value})} />
       <input type="number" step="0.1" value={form.bounceZ} onChange={e => setForm({...form, bounceZ: +e.target.value})} /><br/>
-      Speed: <input type="number" value={form.speed} onChange={e => setForm({...form, speed: +e.target.value})} /><br/>
-      Spin: <select value={form.spin} onChange={e => setForm({...form, spin: e.target.value})}>
-        <option>flat</option><option>topspin</option><option>slice</option>
+      Скорость: <input type="number" value={form.speed} onChange={e => setForm({...form, speed: +e.target.value})} /><br/>
+      Вращение: <select value={form.spin} onChange={e => setForm({...form, spin: e.target.value})}>
+        <option value="flat">Плоский</option>
+        <option value="topspin">Топспин</option>
+        <option value="slice">Слайс</option>
       </select><br/>
-      Height: <input type="number" step="0.1" value={form.height} onChange={e => setForm({...form, height: +e.target.value})} /><br/>
-      Shot: <select value={form.shot} onChange={e => setForm({...form, shot: e.target.value})}>
-        <option>forehand</option><option>backhand</option>
+      Высота: <input type="number" step="0.1" value={form.height} onChange={e => setForm({...form, height: +e.target.value})} /><br/>
+      Удар: <select value={form.shot} onChange={e => setForm({...form, shot: e.target.value})}>
+        <option value="forehand">Форхенд</option>
+        <option value="backhand">Бэкхенд</option>
       </select>
-      Handed: <select value={form.handed} onChange={e => setForm({...form, handed: e.target.value})}>
-        <option>right</option><option>left</option>
+      Рука: <select value={form.handed} onChange={e => setForm({...form, handed: e.target.value})}>
+        <option value="right">Правая</option>
+        <option value="left">Левая</option>
       </select><br/>
-      Recommended: <select value={form.recommendedStance} onChange={e => setForm({...form, recommendedStance: e.target.value})}>
-        <option>open</option><option>semi-open</option><option>neutral</option><option>closed</option>
+      Рекоменд. стойка: <select value={form.recommendedStance} onChange={e => setForm({...form, recommendedStance: e.target.value})}>
+        <option value="open">Открытая</option>
+        <option value="semi-open">Полуоткрытая</option>
+        <option value="neutral">Нейтральная</option>
+        <option value="closed">Закрытая</option>
       </select><br/>
-      Hint: <input value={form.hint} onChange={e => setForm({...form, hint: e.target.value})} /><br/>
-      <button onClick={save}>Save draft</button>
+      Подсказка: <input value={form.hint} onChange={e => setForm({...form, hint: e.target.value})} /><br/>
+      <button onClick={save}>Сохранить черновик</button>
     </div>
   );
 }
