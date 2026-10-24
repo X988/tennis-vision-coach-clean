@@ -4,7 +4,7 @@ import { PoseLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
 export function LiveCoach({ onHint }: { onHint?: (msg: string) => void }) {
   const [active, setActive] = useState(false);
   const [lastHint, setLastHint] = useState('');
-  const [status, setStatus] = useState('Ready');
+  const [status, setStatus] = useState('Готов');
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const landmarkerRef = useRef<PoseLandmarker | null>(null);
@@ -27,10 +27,10 @@ export function LiveCoach({ onHint }: { onHint?: (msg: string) => void }) {
         });
         if (!cancelled) {
           landmarkerRef.current = landmarker;
-          setStatus('MediaPipe ready');
+          setStatus('MediaPipe готов');
         }
       } catch (e) {
-        setStatus('MediaPipe load failed');
+        setStatus('Ошибка загрузки MediaPipe');
         console.error(e);
       }
     })();
@@ -99,7 +99,7 @@ export function LiveCoach({ onHint }: { onHint?: (msg: string) => void }) {
 
   const start = async () => {
     if (!landmarkerRef.current) {
-      setStatus('Waiting for MediaPipe...');
+      setStatus('Ожидание MediaPipe...');
       return;
     }
     try {
@@ -111,10 +111,10 @@ export function LiveCoach({ onHint }: { onHint?: (msg: string) => void }) {
         await videoRef.current.play();
       }
       setActive(true);
-      setStatus('Live');
+      setStatus('Живой');
       rafRef.current = requestAnimationFrame(analyze);
     } catch {
-      setStatus('Camera error');
+      setStatus('Ошибка камеры');
       alert('Камера недоступна');
     }
   };
@@ -126,15 +126,15 @@ export function LiveCoach({ onHint }: { onHint?: (msg: string) => void }) {
     }
     setActive(false);
     setLastHint('');
-    setStatus('Stopped');
+    setStatus('Остановлено');
   };
 
   return (
     <div className="panel">
-      <b>Live Coach (MediaPipe Pose)</b><br/>
+      <b>Живой тренер (MediaPipe)</b><br/>
       <div style={{ fontSize: 12, color: '#aaa' }}>{status}</div>
-      <button onClick={active ? stop : start} disabled={!landmarkerRef.current && status !== 'MediaPipe ready'}>
-        {active ? 'Stop' : 'Start live'}
+      <button onClick={active ? stop : start} disabled={!landmarkerRef.current && status !== 'MediaPipe готов'}>
+        {active ? 'Стоп' : 'Старт живой'}
       </button>
       <div style={{ position: 'relative', marginTop: 8 }}>
         <video ref={videoRef} playsInline muted style={{ display: 'none' }} />
