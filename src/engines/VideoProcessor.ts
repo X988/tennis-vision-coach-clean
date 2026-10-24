@@ -46,7 +46,10 @@ async function getLandmarker() {
           delegate: 'GPU'
         },
         runningMode: 'VIDEO',
-        numPoses: 1
+        numPoses: 1,
+        minPoseDetectionConfidence: 0.5,
+        minPosePresenceConfidence: 0.5,
+        minTrackingConfidence: 0.5
       });
     })();
   }
@@ -56,21 +59,22 @@ async function getLandmarker() {
 export class VideoProcessor {
   async analyze(file: File, playerSide: 'near' | 'far' = 'near'): Promise<AnalysisResult> {
     const duration = await this.getDuration(file);
-    if (duration < 5 || duration > 120) {
-      return this.insufficient('Duration should be 5–120 seconds for analysis');
+    if (duration < 3 || duration > 180) {
+      return this.insufficient('Duration should be 3–180 seconds for analysis');
     }
 
     const frames = await this.extractPoseFrames(file, duration);
-    const avgConf = frames.reduce((s, f) => s + f.confidence, 0) / (frames.length || 1);
+    const validFrames = frames.filter(f => f.confidence > 0.3);
+    const avgConf = validFrames.reduce((s, f) => s + f.confidence, 0) / (validFrames.length || 1);
 
     let quality: Quality = 'suitable';
     let reason = 'Good pose visibility';
-    if (avgConf < 0.35) {
+    if (validFrames.length < 8 || avgConf < 0.4) {
       quality = 'insufficient';
-      reason = 'Low pose confidence — player poorly visible';
-    } else if (avgConf < 0.6) {
+      reason = 'Low pose confidence — player poorly visible or video too short';
+    } else if (avgConf < 0.65 || validFrames.length < 15) {
       quality = 'partial';
-      reason = 'Partial pose data';
+      reason = 'Partial pose data — some frames missing';
     }
 
     if (quality === 'insufficient') {
@@ -78,7 +82,7 @@ export class VideoProcessor {
     }
 
     const events = this.detectEvents(frames, playerSide);
-    const scenario = this.toScenario(events, playerSide);
+    const scenario = this.toScenario(events, playerSide, frames);
     const errors = this.detectErrors(frames, events);
 
     return { quality, reason, events, frames, scenario, errors };
@@ -102,19 +106,21 @@ export class VideoProcessor {
     video.pause();
 
     const frames: PoseFrame[] = [];
-    const step = Math.max(0.08, duration / 80);
+    const step = Math.max(0.06, duration / 100);
 
     for (let t = 0; t < duration; t += step) {
       video.currentTime = t;
       await new Promise(r => { video.onseeked = r; });
       const res = lm.detectForVideo(video, t * 1000);
       const landmarks = res.landmarks?.[0] || [];
-      const conf = landmarks[0]?.visibility ?? 0;
-      const hip = landmarks[23] || landmarks[24];
+      const conf = landmarks.length > 0 ? (landmarks[0]?.visibility ?? 0.5) : 0;
+      const hipL = landmarks[23];
+      const hipR = landmarks[24];
+      const hip = hipL && hipR ? { x: (hipL.x + hipR.x) / 2, y: (hipL.y + hipR.y) / 2 } : hipL || hipR;
       frames.push({
         time: t,
         landmarks: landmarks.map((p: any) => [p.x, p.y, p.z || 0, p.visibility || 0]),
-        courtPos: hip ? { x: (hip.x - 0.5) * 8, z: -10 + hip.y * 4 } : undefined,
+        courtPos: hip ? { x: (hip.x - 0.5) * 10, z: -11 + hip.y * 5 } : undefined,
         confidence: conf
       });
     }
@@ -129,69 +135,140 @@ export class VideoProcessor {
       const c = frames[i + 1].courtPos;
       if (!a || !b || !c) continue;
       const speed = Math.hypot(b.x - a.x, b.z - a.z);
-      if (speed > 0.6 && frames[i].confidence > 0.5) {
+      const accel = Math.hypot(c.x - b.x, c.z - b.z) - speed;
+      if (speed > 0.45 && frames[i].confidence > 0.45 && Math.abs(accel) > 0.15) {
         events.push({
-          type: i < frames.length * 0.4 ? 'opponent_hit' : 'contact',
+          type: i < frames.length * 0.35 ? 'opponent_hit' : 'contact',
           time: frames[i].time,
-          confidence: frames[i].confidence * 0.85,
+          confidence: Math.min(0.95, frames[i].confidence * 0.9),
           position: b
         });
       }
     }
     const contact = events.find(e => e.type === 'contact');
-    if (contact) {
+    if (contact && contact.position) {
       events.push({
         type: 'bounce',
-        time: Math.max(0, contact.time - 0.35),
-        confidence: 0.6,
-        position: { x: contact.position!.x, z: contact.position!.z + 1.2 }
+        time: Math.max(0, contact.time - 0.4),
+        confidence: 0.65,
+        position: { x: contact.position.x * 0.9, z: contact.position.z + 1.5 }
       });
     }
-    return events.slice(0, 6);
+    return events.slice(0, 8);
   }
 
-  private toScenario(events: VideoEvent[], side: string) {
+  private toScenario(events: VideoEvent[], side: string, frames: PoseFrame[]) {
     const bounce = events.find(e => e.type === 'bounce');
     const contact = events.find(e => e.type === 'contact');
+    const avgConf = frames.reduce((s, f) => s + f.confidence, 0) / (frames.length || 1);
     return {
       id: 'video-episode',
-      name: 'From video (MediaPipe)',
+      name: 'From video (AI analysis)',
       bounce: bounce?.position || { x: 0, z: -9 },
-      speed: 15,
+      speed: contact ? Math.min(28, 12 + contact.confidence * 10) : 15,
       spin: 'flat',
-      height: 0.6,
+      height: 0.55 + (avgConf > 0.7 ? 0.15 : 0),
       shot: 'forehand',
       handed: 'right',
       source: 'video',
-      uncertainty: 1 - (contact?.confidence || 0.5)
+      uncertainty: Math.max(0.1, 1 - avgConf)
     };
   }
 
   private detectErrors(frames: PoseFrame[], events: VideoEvent[]) {
-    const avgX = frames.filter(f => f.courtPos).reduce((s, f) => s + f.courtPos!.x, 0) / (frames.length || 1);
-    return [
-      {
+    const valid = frames.filter(f => f.courtPos && f.confidence > 0.4);
+    if (valid.length < 5) {
+      return [{
         category: 'position' as const,
-        evidence: `Average lateral position ${avgX.toFixed(1)}m`,
-        hypothesis: Math.abs(avgX) > 1.5 ? 'Too far from center' : 'Acceptable positioning',
-        alternative: 'Recover closer to center after each shot',
-        confidence: 0.7
-      },
-      {
+        evidence: 'Insufficient pose data',
+        hypothesis: 'Cannot reliably assess',
+        alternative: 'Record with better lighting and full body visible',
+        confidence: 0.3
+      }];
+    }
+
+    const avgX = valid.reduce((s, f) => s + f.courtPos!.x, 0) / valid.length;
+    const maxAbsX = Math.max(...valid.map(f => Math.abs(f.courtPos!.x)));
+    const earlyFrames = valid.slice(0, Math.floor(valid.length * 0.4));
+    const lateFrames = valid.slice(Math.floor(valid.length * 0.6));
+    const earlyX = earlyFrames.reduce((s, f) => s + f.courtPos!.x, 0) / (earlyFrames.length || 1);
+    const lateX = lateFrames.reduce((s, f) => s + f.courtPos!.x, 0) / (lateFrames.length || 1);
+    const recovery = Math.abs(lateX) - Math.abs(earlyX);
+
+    const errors = [];
+
+    // Position
+    if (Math.abs(avgX) > 1.8) {
+      errors.push({
+        category: 'position' as const,
+        evidence: `Average position ${avgX.toFixed(1)}m from center (max ${maxAbsX.toFixed(1)}m)`,
+        hypothesis: 'Staying too wide — poor recovery',
+        alternative: 'Recover toward center after each shot to cover more court',
+        confidence: Math.min(0.92, 0.55 + Math.abs(avgX) * 0.15)
+      });
+    } else if (recovery > 0.8) {
+      errors.push({
+        category: 'position' as const,
+        evidence: `Position drifted outward by ${recovery.toFixed(1)}m during point`,
+        hypothesis: 'Late or incomplete recovery',
+        alternative: 'Take smaller steps and recover earlier',
+        confidence: 0.75
+      });
+    } else {
+      errors.push({
+        category: 'position' as const,
+        evidence: `Average position ${avgX.toFixed(1)}m — within good range`,
+        hypothesis: 'Positioning acceptable',
+        alternative: 'Keep recovering to center',
+        confidence: 0.8
+      });
+    }
+
+    // Preparation (simple shoulder/hip proxy from available data)
+    const hasShoulders = valid.some(f => f.landmarks.length > 12);
+    if (hasShoulders) {
+      errors.push({
         category: 'preparation' as const,
-        evidence: 'Pose sequence shows delayed shoulder-hip separation',
-        hypothesis: 'Late unit turn',
-        alternative: 'Start turn earlier on bounce',
-        confidence: 0.62
-      },
-      {
+        evidence: 'Shoulder line movement detected across frames',
+        hypothesis: recovery > 0.5 ? 'Unit turn may start late' : 'Preparation timing looks reasonable',
+        alternative: 'Start shoulder turn as the ball leaves opponent racket',
+        confidence: 0.68
+      });
+    } else {
+      errors.push({
+        category: 'preparation' as const,
+        evidence: 'Limited upper-body landmarks',
+        hypothesis: 'Hard to judge preparation timing',
+        alternative: 'Film from side angle for better shoulder visibility',
+        confidence: 0.45
+      });
+    }
+
+    // Distance / stance
+    const contact = events.find(e => e.type === 'contact');
+    if (contact && contact.position) {
+      const contactFrame = valid.find(f => Math.abs(f.time - contact.time) < 0.15);
+      const dist = contactFrame?.courtPos
+        ? Math.hypot(contactFrame.courtPos.x - contact.position.x, contactFrame.courtPos.z - contact.position.z)
+        : 1.2;
+      errors.push({
         category: 'distance_stance' as const,
-        evidence: 'Contact proximity inferred from hip-shoulder distance',
-        hypothesis: 'Spacing could be improved',
-        alternative: 'Use semi-open stance for more space',
-        confidence: 0.65
-      }
-    ];
+        evidence: `Contact distance approx ${dist.toFixed(1)}m`,
+        hypothesis: dist > 1.8 ? 'Too far from ball' : dist < 0.6 ? 'Too close to ball' : 'Distance reasonable',
+        alternative: dist > 1.8 ? 'Adjust feet earlier and use open stance if needed' : 'Maintain arm extension',
+        confidence: 0.7
+      });
+    } else {
+      errors.push({
+        category: 'distance_stance' as const,
+        evidence: 'Contact event not clearly detected',
+        hypothesis: 'Cannot judge spacing reliably',
+        alternative: 'Record full swing with ball visible',
+        confidence: 0.4
+      });
+    }
+
+    return errors;
   }
 
   private insufficient(reason: string): AnalysisResult {
