@@ -36,46 +36,49 @@ export function Player({
   useFrame(() => {
     if (group.current) group.current.position.copy(pos);
     const p = anim.progress();
-    const swing = Math.sin(p * Math.PI * 2) * 1.4;
-    const prep = Math.sin(p * Math.PI) * 0.8;
-    const wristSnap = Math.sin((p - 0.18) * Math.PI * 2.4) * 1.0;
-    // Kinetic chain sequencing (hips → torso → arm → wrist)
-    const hipRot = Math.sin((p - 0.12) * Math.PI * 2) * 0.6 * side;
-    const torsoRot = Math.sin((p - 0.05) * Math.PI * 2) * 0.75 * side;
+    // SSC: eccentric preload (coil) then concentric release
+    const coil = p < 0.35 ? Math.sin(p / 0.35 * Math.PI) * 0.7 : 0;
+    const release = p > 0.3 ? Math.sin((p - 0.3) / 0.7 * Math.PI) : 0;
+    const swing = release * 1.5;
+    const wristSnap = p > 0.55 ? Math.sin((p - 0.55) / 0.45 * Math.PI) * 1.2 : 0;
+
+    // Hips and torso: stretch then explode
+    const hipRot = (-coil * 0.5 + release * 0.65) * side;
+    const torsoRot = (-coil * 0.75 + release * 0.8) * side;
 
     if (hips.current) hips.current.rotation.y = hipRot;
     if (torso.current) torso.current.rotation.y = torsoRot;
 
     if (arm.current) {
-      arm.current.rotation.z = (isFH ? -1 : 1) * swing * side * 0.9;
-      arm.current.rotation.y = swing * 0.6 * side;
-      arm.current.rotation.x = -prep * 0.4;
-      arm.current.position.y = 1.2 + Math.abs(swing) * 0.08;
+      arm.current.rotation.z = (isFH ? -1 : 1) * swing * side * 0.95;
+      arm.current.rotation.y = (swing - coil * 0.3) * side * 0.7;
+      arm.current.rotation.x = -coil * 0.5 + release * 0.15;
+      arm.current.position.y = 1.2 + release * 0.1;
     }
 
     if (wrist.current) {
-      wrist.current.rotation.z = (isFH ? -1 : 1) * wristSnap * side * 1.15;
-      wrist.current.rotation.x = wristSnap * 0.45;
-      wrist.current.rotation.y = swing * 0.3 * side;
+      wrist.current.rotation.z = (isFH ? -1 : 1) * wristSnap * side * 1.2;
+      wrist.current.rotation.x = wristSnap * 0.5;
+      wrist.current.rotation.y = swing * 0.35 * side;
     }
 
     if (armOther.current) {
       const twoHand = shot === 'backhand' ? 1 : 0.3;
       armOther.current.rotation.z = (isFH ? 1 : -1) * swing * side * 0.5 * twoHand;
       armOther.current.rotation.y = -swing * 0.3 * side;
-      armOther.current.rotation.x = prep * 0.25;
+      armOther.current.rotation.x = coil * 0.3;
     }
 
-    const step = Math.sin(p * Math.PI * 2) * 0.12;
-    const lift = Math.max(0, Math.sin(p * Math.PI * 2)) * 0.06;
-
+    // Feet: load then transfer
+    const load = coil * 0.08;
+    const step = release * 0.14;
     if (footL.current) {
-      footL.current.position.set(fx1 * side + step * side, 0.05 + lift, fz1);
-      footL.current.rotation.y = step * 0.8 * side;
+      footL.current.position.set(fx1 * side + step * side, 0.05 + load, fz1);
+      footL.current.rotation.y = step * 0.9 * side;
     }
     if (footR.current) {
-      footR.current.position.set(fx2 * side - step * side, 0.05 + (lift * 0.6), fz2);
-      footR.current.rotation.y = -step * 0.5 * side;
+      footR.current.position.set(fx2 * side - step * side, 0.05 + load * 0.5, fz2);
+      footR.current.rotation.y = -step * 0.4 * side;
     }
   });
 
