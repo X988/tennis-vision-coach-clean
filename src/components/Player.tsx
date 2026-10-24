@@ -38,10 +38,10 @@ export function Player({
     const p = anim.progress();
     const swing = Math.sin(p * Math.PI * 2) * 1.4;
     const prep = Math.sin(p * Math.PI) * 0.8;
-    const wristSnap = Math.sin((p - 0.15) * Math.PI * 2.2) * 0.9;
-    // Kinetic chain: hips lead, then torso
-    const hipRot = Math.sin((p - 0.08) * Math.PI * 2) * 0.55 * side;
-    const torsoRot = Math.sin(p * Math.PI * 2) * 0.7 * side;
+    const wristSnap = Math.sin((p - 0.18) * Math.PI * 2.4) * 1.0;
+    // Kinetic chain sequencing (hips → torso → arm → wrist)
+    const hipRot = Math.sin((p - 0.12) * Math.PI * 2) * 0.6 * side;
+    const torsoRot = Math.sin((p - 0.05) * Math.PI * 2) * 0.75 * side;
 
     if (hips.current) hips.current.rotation.y = hipRot;
     if (torso.current) torso.current.rotation.y = torsoRot;
@@ -54,8 +54,8 @@ export function Player({
     }
 
     if (wrist.current) {
-      wrist.current.rotation.z = (isFH ? -1 : 1) * wristSnap * side * 1.1;
-      wrist.current.rotation.x = wristSnap * 0.4;
+      wrist.current.rotation.z = (isFH ? -1 : 1) * wristSnap * side * 1.15;
+      wrist.current.rotation.x = wristSnap * 0.45;
       wrist.current.rotation.y = swing * 0.3 * side;
     }
 
@@ -81,12 +81,10 @@ export function Player({
 
   return (
     <group ref={group}>
-      {/* Hips */}
       <mesh ref={hips} position={[0, 0.55, 0]}>
         <boxGeometry args={[0.32, 0.18, 0.22]} />
         <meshStandardMaterial color="#2a5a9a" />
       </mesh>
-      {/* Torso */}
       <mesh ref={torso} position={[0, 1.05, 0]}>
         <capsuleGeometry args={[0.26, 0.55, 4, 8]} />
         <meshStandardMaterial color="#4a90d9" />
