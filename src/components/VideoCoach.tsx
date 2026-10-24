@@ -17,53 +17,48 @@ export function VideoCoach({ onReplay }: { onReplay: (scenario: any) => void }) 
   };
 
   return (
-    <div className="controls" style={{ maxWidth: 420 }}>
-      <b>AI Video Coach (V0–V1 Pilot)</b><br/>
-      <input type="file" accept="video/mp4,video/quicktime" onChange={onFile} /><br/>
-      Player: <select value={playerSide} onChange={e => setPlayerSide(e.target.value as any)}>
-        <option value="near">Near (bottom)</option>
-        <option value="far">Far (top)</option>
+    <div className="panel">
+      <h3>AI Видео тренер</h3>
+      <input type="file" accept="video/mp4,video/quicktime" onChange={onFile} style={{ margin: '8px 0' }} /><br/>
+      Игрок: <select value={playerSide} onChange={e => setPlayerSide(e.target.value as any)}>
+        <option value="near">Ближний (снизу)</option>
+        <option value="far">Дальний (сверху)</option>
       </select>
-      <div style={{ marginTop: 8 }}>
-        Mode: 
-        <button onClick={() => setMode('video')}>Video</button>
-        <button onClick={() => setMode('skeleton')}>+ Skeleton</button>
-        <button onClick={() => setMode('3d')}>My 3D</button>
-        <button onClick={() => setMode('compare')}>Compare</button>
+      <div className="controls-row" style={{ marginTop: 8 }}>
+        <button onClick={() => setMode('video')} className={mode==='video'?'primary':''}>Видео</button>
+        <button onClick={() => setMode('skeleton')} className={mode==='skeleton'?'primary':''}>+Скелет</button>
+        <button onClick={() => setMode('3d')} className={mode==='3d'?'primary':''}>Мой 3D</button>
+        <button onClick={() => setMode('compare')} className={mode==='compare'?'primary':''}>Сравнить</button>
       </div>
 
       {result && (
-        <div className="panel">
-          Quality: <b>{result.quality}</b> — {result.reason}<br/>
+        <div style={{ marginTop: 12 }}>
+          Качество: <b>{result.quality}</b> — {result.reason}<br/>
           {result.quality !== 'insufficient' && (
             <>
-              Events: {result.events.map(e => `${e.type}@${e.time.toFixed(1)}s (${(e.confidence*100).toFixed(0)}%)`).join(', ')}<br/>
-              <button disabled={!result.scenario} onClick={() => result.scenario && onReplay(result.scenario)}>
-                Replay moment in 3D
+              <button disabled={!result.scenario} onClick={() => result.scenario && onReplay(result.scenario)} style={{ marginTop: 8 }}>
+                Переиграть в 3D
               </button>
               {result.errors.length > 0 && (
-                <div>
-                  <b>Errors (evidence-based):</b>
+                <div style={{ marginTop: 10 }}>
+                  <b>Ошибки:</b>
                   {result.errors.map((err, i) => (
-                    <div key={i} style={{ fontSize: 12, marginTop: 4 }}>
+                    <div key={i} style={{ fontSize: 13, marginTop: 6, padding: 8, background: '#222', borderRadius: 6 }}>
                       <b>{err.category}</b> ({(err.confidence*100).toFixed(0)}%)<br/>
-                      Evidence: {err.evidence}<br/>
-                      Hypothesis: {err.hypothesis}<br/>
-                      Alternative: {err.alternative}
+                      {err.evidence}<br/>
+                      <i>{err.hypothesis}</i><br/>
+                      Альтернатива: {err.alternative}
                     </div>
                   ))}
                 </div>
               )}
             </>
           )}
-          {result.quality === 'insufficient' && <i>No confident conclusions generated.</i>}
+          {result.quality === 'insufficient' && <i>Недостаточно данных для уверенных выводов.</i>}
         </div>
       )}
 
-      <video ref={videoRef} controls style={{ width: '100%', marginTop: 8, display: mode === 'video' || mode === 'skeleton' ? 'block' : 'none' }} />
-      {mode === 'skeleton' && result && <div style={{ fontSize: 12 }}>Skeleton overlay (MediaPipe landmarks) — pilot placeholder</div>}
-      {mode === '3d' && <div style={{ fontSize: 12 }}>Switch to main 3D view after Replay</div>}
-      {mode === 'compare' && result && <div style={{ fontSize: 12 }}>Recommended alternative shown in 3D after Replay</div>}
+      <video ref={videoRef} controls style={{ width: '100%', marginTop: 12, borderRadius: 8, display: mode === 'video' || mode === 'skeleton' ? 'block' : 'none' }} />
     </div>
   );
 }
