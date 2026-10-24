@@ -9,6 +9,10 @@ export class AnimationEngine {
     this.speed = (this.duration * this.contactRatio) / Math.max(ct, 0.15);
   }
 
+  setPlaying(v: boolean) {
+    this.playing = v;
+  }
+
   update(dt: number) {
     if (!this.playing) return;
     this.time += dt * this.speed;
