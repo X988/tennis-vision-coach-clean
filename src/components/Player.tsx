@@ -38,23 +38,24 @@ export function Player({
   useFrame((_, delta) => {
     if (group.current) group.current.position.copy(pos);
     const p = Math.min(1, Math.max(0, anim.progress()));
-    const dt = Math.min(delta, 0.05);
+    const dt = Math.min(delta, 0.04);
 
-    const coilT = Math.min(1, p / 0.32);
-    const coil = Math.sin(coilT * Math.PI * 0.5) * 0.65;
-    const relT = Math.max(0, (p - 0.28) / 0.72);
-    const release = Math.sin(relT * Math.PI * 0.5);
-    const wristT = Math.max(0, (p - 0.58) / 0.42);
-    const targetWrist = Math.sin(wristT * Math.PI) * 1.15;
+    // Smoother phase curves
+    const coilT = Math.min(1, p / 0.30);
+    const coil = Math.sin(coilT * Math.PI * 0.5) * 0.62;
+    const relT = Math.max(0, (p - 0.26) / 0.74);
+    const release = Math.sin(relT * Math.PI * 0.5) ** 0.85;
+    const wristT = Math.max(0, (p - 0.60) / 0.40);
+    const targetWrist = Math.sin(wristT * Math.PI) * 1.05;
 
-    const targetHip = (-coil * 0.45 + release * 0.7) * side;
-    const targetTorso = (-coil * 0.7 + release * 0.85) * side;
-    const targetArmZ = (isFH ? -1 : 1) * release * 1.35 * side * 0.92;
-    const targetWristZ = (isFH ? -1 : 1) * targetWrist * side * 1.1;
-    const targetArmY = 1.18 + release * 0.09;
+    const targetHip = (-coil * 0.42 + release * 0.68) * side;
+    const targetTorso = (-coil * 0.68 + release * 0.82) * side;
+    const targetArmZ = (isFH ? -1 : 1) * release * 1.28 * side * 0.9;
+    const targetWristZ = (isFH ? -1 : 1) * targetWrist * side * 1.05;
+    const targetArmY = 1.17 + release * 0.08;
 
-    const k = 18;
-    const damp = 6;
+    const k = 22;
+    const damp = 7.5;
     const update = (current: number, target: number, v: number) => {
       const force = (target - current) * k - v * damp;
       const nv = v + force * dt;
@@ -69,7 +70,7 @@ export function Player({
     if (torso.current) {
       const [r, v] = update(torso.current.rotation.y, targetTorso, vel.current.torso);
       torso.current.rotation.y = r;
-      torso.current.rotation.z = release * 0.08 * side;
+      torso.current.rotation.z = release * 0.07 * side;
       vel.current.torso = v;
     }
     if (arm.current) {
@@ -77,41 +78,40 @@ export function Player({
       arm.current.rotation.z = rz;
       vel.current.arm = vz;
 
-      // Gravity on arm vertical position
       const [py, vy] = update(arm.current.position.y, targetArmY, vel.current.armY);
-      const gravForce = -g * 0.15 * (1 - release); // gravity pulls down more during coil
-      const nvy = vy + gravForce * dt;
-      arm.current.position.y = Math.max(1.05, py + nvy * dt);
+      const grav = -g * 0.12 * (1 - release * 0.8);
+      const nvy = vy + grav * dt;
+      arm.current.position.y = Math.max(1.04, py + nvy * dt);
       vel.current.armY = nvy;
 
-      arm.current.rotation.y = (release - coil * 0.25) * side * 0.65;
-      arm.current.rotation.x = -coil * 0.45 + release * 0.12;
-      arm.current.position.z = release * 0.12 * side;
+      arm.current.rotation.y = (release * 0.9 - coil * 0.22) * side * 0.62;
+      arm.current.rotation.x = -coil * 0.42 + release * 0.1;
+      arm.current.position.z = release * 0.1 * side;
     }
     if (wrist.current) {
       const [r, v] = update(wrist.current.rotation.z, targetWristZ, vel.current.wrist);
       wrist.current.rotation.z = r;
-      wrist.current.rotation.x = targetWrist * 0.42;
-      wrist.current.rotation.y = release * 0.3 * side;
+      wrist.current.rotation.x = targetWrist * 0.38;
+      wrist.current.rotation.y = release * 0.28 * side;
       vel.current.wrist = v;
     }
 
     if (armOther.current) {
-      const two = shot === 'backhand' ? 0.9 : 0.25;
-      armOther.current.rotation.z = (isFH ? 1 : -1) * release * side * 0.45 * two;
-      armOther.current.rotation.y = -release * 0.25 * side;
-      armOther.current.rotation.x = coil * 0.28;
+      const two = shot === 'backhand' ? 0.85 : 0.22;
+      armOther.current.rotation.z = (isFH ? 1 : -1) * release * side * 0.42 * two;
+      armOther.current.rotation.y = -release * 0.22 * side;
+      armOther.current.rotation.x = coil * 0.25;
     }
 
-    const load = coil * 0.07;
-    const step = release * 0.13;
+    const load = coil * 0.065;
+    const step = release * 0.12;
     if (footL.current) {
       footL.current.position.set(fx1 * side + step * side, 0.05 + load, fz1);
-      footL.current.rotation.y = step * 0.85 * side;
+      footL.current.rotation.y = step * 0.8 * side;
     }
     if (footR.current) {
-      footR.current.position.set(fx2 * side - step * side, 0.05 + load * 0.4, fz2);
-      footR.current.rotation.y = -step * 0.35 * side;
+      footR.current.position.set(fx2 * side - step * side, 0.05 + load * 0.35, fz2);
+      footR.current.rotation.y = -step * 0.32 * side;
     }
   });
 
