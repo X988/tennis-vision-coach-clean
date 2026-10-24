@@ -23,6 +23,7 @@ export function Player({
 }) {
   const arm = useRef<THREE.Mesh>(null!);
   const armOther = useRef<THREE.Mesh>(null!);
+  const wrist = useRef<THREE.Mesh>(null!);
   const group = useRef<THREE.Group>(null!);
   const footL = useRef<THREE.Mesh>(null!);
   const footR = useRef<THREE.Mesh>(null!);
@@ -35,6 +36,8 @@ export function Player({
     const p = anim.progress();
     const swing = Math.sin(p * Math.PI * 2) * 1.4;
     const prep = Math.sin(p * Math.PI) * 0.8;
+    // Wrist lag then snap (typical tennis contact timing)
+    const wristSnap = Math.sin((p - 0.15) * Math.PI * 2.2) * 0.9;
 
     // Racket arm
     if (arm.current) {
@@ -44,7 +47,14 @@ export function Player({
       arm.current.position.y = 1.2 + Math.abs(swing) * 0.08;
     }
 
-    // Other arm (balance / two-handed)
+    // Wrist
+    if (wrist.current) {
+      wrist.current.rotation.z = (isFH ? -1 : 1) * wristSnap * side * 1.1;
+      wrist.current.rotation.x = wristSnap * 0.4;
+      wrist.current.rotation.y = swing * 0.3 * side;
+    }
+
+    // Other arm
     if (armOther.current) {
       const twoHand = shot === 'backhand' ? 1 : 0.3;
       armOther.current.rotation.z = (isFH ? 1 : -1) * swing * side * 0.5 * twoHand;
@@ -52,7 +62,7 @@ export function Player({
       armOther.current.rotation.x = prep * 0.25;
     }
 
-    // Foot animation
+    // Feet
     const step = Math.sin(p * Math.PI * 2) * 0.12;
     const lift = Math.max(0, Math.sin(p * Math.PI * 2)) * 0.06;
 
@@ -76,7 +86,6 @@ export function Player({
         <sphereGeometry args={[0.18]} />
         <meshStandardMaterial color="#ffdbac" />
       </mesh>
-      {/* Feet */}
       <mesh ref={footL} position={[fx1 * side, 0.05, fz1]}>
         <boxGeometry args={[0.18, 0.08, 0.3]} />
         <meshStandardMaterial color="#222" />
@@ -89,6 +98,11 @@ export function Player({
       <mesh ref={arm} position={[0.45 * side, 1.2, 0]}>
         <boxGeometry args={[0.08, 0.55, 0.08]} />
         <meshStandardMaterial color="#333" />
+      </mesh>
+      {/* Wrist */}
+      <mesh ref={wrist} position={[0.52 * side, 1.48, 0]}>
+        <boxGeometry args={[0.06, 0.12, 0.06]} />
+        <meshStandardMaterial color="#ffdbac" />
       </mesh>
       {/* Other arm */}
       <mesh ref={armOther} position={[-0.4 * side, 1.15, 0]}>
