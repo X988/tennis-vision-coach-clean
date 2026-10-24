@@ -28,14 +28,14 @@ const T = {
   play: 'Играть', pause: 'Пауза', step: 'Шаг', reset: 'Сброс',
   hideLayers: 'Скрыть слои', showLayers: 'Слои',
   single: 'Один', compare: 'Сравнить',
-  cam: 'Камера', top: 'Сверху', side: 'Сбоку', back: 'Сзади', free: 'Свободно',
+  cam: 'Камера', top: 'Сверху', side: 'Сбоку', backCam: 'Сзади', free: 'Свободно',
   scenario: 'Сценарий', library: 'Библиотека',
   mode: 'Режим', playMode: 'Просмотр', decide: 'Решение',
   chooseStance: 'Выберите стойку',
   recommended: 'Рекомендовано', alt: 'Альтернативы',
   progress: 'Прогресс', correct: 'правильно',
   open: 'Открытая', semiOpen: 'Полуоткрытая', neutral: 'Нейтральная', closed: 'Закрытая',
-  back: '←',
+  backBtn: '←',
 };
 
 const stanceLabel: Record<Stance, string> = {
@@ -132,15 +132,13 @@ export default function App() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-      {/* Header with back */}
       {screen !== 'home' && (
         <div className="header">
-          <button onClick={goHome}>{T.back}</button>
+          <button onClick={goHome}>{T.backBtn}</button>
           <span>{T.tabs[screen as keyof typeof T.tabs] || T.title}</span>
         </div>
       )}
 
-      {/* Content */}
       <div className="canvas-wrap" style={{ display: screen === '3d' ? 'block' : 'none' }}>
         <Canvas shadows>
           <ambientLight intensity={0.55} />
@@ -177,7 +175,6 @@ export default function App() {
       {screen === 'match' && <div className="screen"><MatchCoach onReplay={onReplay} /></div>}
       {screen === 'live' && <div className="screen"><LiveCoach /></div>}
 
-      {/* 3D controls overlay */}
       {screen === '3d' && (
         <div style={{ position: 'absolute', bottom: 70, left: 0, right: 0, maxHeight: '45%', overflowY: 'auto', background: 'rgba(15,17,21,0.92)', padding: '8px 0' }}>
           <div className="controls-row" style={{ padding: '0 10px' }}>
@@ -195,7 +192,7 @@ export default function App() {
             <span style={{ fontSize: 13 }}>{T.cam}:</span>
             <button onClick={() => setCam('top')}>{T.top}</button>
             <button onClick={() => setCam('side')}>{T.side}</button>
-            <button onClick={() => setCam('back')}>{T.back}</button>
+            <button onClick={() => setCam('back')}>{T.backCam}</button>
             <button onClick={() => setCam('free')}>{T.free}</button>
           </div>
           <div className="panel" style={{ margin: '6px 10px' }}>
@@ -241,7 +238,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Bottom nav */}
       <div className="bottom-nav">
         <button className={screen === 'home' ? 'active' : ''} onClick={() => setScreen('home')}>
           <span>⌂</span>Главная
